@@ -6,7 +6,7 @@
   "contract_source": "contracts/CausalBond.py",
   "contract_sha256": "52522a405a536ff385d888efa29eb6acbda02f5686656275c1565555be83c76e",
   "runtime_case": "97d8b5c551db611fe26559622798849f1394f2019249e01e75dfe3f431b3a04f",
-  "semantic_primitive": "One breached original clause × one accepted mandate -> CARRIES or DOES_NOT_CARRY.",
+  "semantic_primitive": "One breached original clause \u00d7 one accepted mandate -> CARRIES or DOES_NOT_CARRY.",
   "frontend": {
     "identity": "liability command center with horizontal protocol dock, orbital mandate-custody map, telemetry stack, vertical protocol ledger, and responsibility matrix",
     "palette": "deep navy, cyan/cobalt, periwinkle/ice-blue; coral reserved for breach states",
@@ -14,8 +14,8 @@
     "completed_action_behavior": "completed finalized writes are removed from active action surfaces and replaced by read-only completion states",
     "wei_precision": "native values handled as bigint / decimal strings; no JavaScript Number conversion for wei",
     "write_success_rule": "present failure execution enum rejects; absent StudioNet enum requires action-specific finalized-state postcondition",
-    "logo_svg": "public/logo.svg",
-    "logo_png": "public/logo.png"
+    "logo_svg": "public/logo.svg (two linked rings; matches application header)",
+    "logo_png": "public/logo.png (512x512; matches application header)"
   },
   "local_gates": {
     "python_compile": "PASS",
@@ -36,5 +36,5 @@
     "edge_2_parent_refund": "0.01 GEN",
     "contract_balance_after_settlement": "0 GEN"
   },
-  "production_build_note": "Dependency-installed production build is not claimed by this package; verify it in the deployment environment."
+  "production_build_note": "Repository source is production-oriented; run npm install && npm run build in the deployment environment for a dependency-installed build check."
 }

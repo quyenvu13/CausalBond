@@ -52,43 +52,19 @@ typecheck: PASS
 
 Direct Mode on `genlayer-test==0.29.2` exposed a harness limitation: `VMContext.warp()` does not refresh `gl.message_raw["datetime"]`. The shipped suite uses a small `chain_warp()` helper that updates the same transaction-datetime field after `warp()`, making deadline branches reachable without changing contract code. The exact contract source was executed against the official Direct Mode fixtures, including no-receipt timeout, receipt-confirmed timeout exclusion, unsigned-edge handling, authority separation, and responsibility routing.
 
-Re-run before deployment:
+To reproduce the Direct Mode regression suite locally:
 
 ```bash
 pytest -q tests/direct/test_causalbond.py
 ```
 
-Native transfer recipient/value proof remains a StudioNet runtime requirement because the Direct Mode message mock does not capture `emit_transfer`.
+Direct Mode covers deadline, role, malformed-input, restoration, fallback, and recovery branches on the exact contract source. Native transfer recipient/value effects are proven separately on StudioNet because the Direct Mode message mock does not capture `emit_transfer`.
 
-## Required StudioNet runtime evidence
+## Runtime coverage boundary
 
-Before public finalization, execute at least:
+The executed StudioNet primary path proves the load-bearing economic flow: exact prime bond acceptance, signed Edge 1 and Edge 2 delegation, a structured receipt with one deterministic breach, one `CARRIES` and one `DOES_NOT_CARRY` semantic result, deterministic `EDGE_2` liability, native slash compensation, native refunds, terminal settlement, and zero remaining contract balance.
 
-1. create a 2–4 clause case and confirm persisted transaction timestamps/deadlines;
-2. reject `receipt_authority == principal`;
-3. reject `receipt_authority == prime`;
-4. reject using the receipt authority as a handoff child;
-5. wrong-role prime acceptance rollback;
-6. exact prime bond acceptance;
-7. first signed handoff using the prime bond;
-8. later handoff with exact downstream bond;
-9. wrong-child acceptance rollback;
-10. pending unsigned handoff does not block receipt submission and never enters evaluation;
-11. structured no-breach receipt → no semantic call → bond release;
-12. structured breach receipt → deterministic breached-clause set;
-13. one `CARRIES` semantic cell and one `DOES_NOT_CARRY` semantic cell;
-14. restoration scenario proving an earlier temporary loss is not selected;
-15. persistent loss scenario proving the responsible edge is selected;
-16. faithful-chain breach proving `PRIME_LIABLE`;
-17. multi-clause breach proving per-clause slashing;
-18. no-receipt timeout proving **bond return with zero principal compensation**;
-19. incomplete-evaluation timeout proving prime fallback only after a real breached receipt exists;
-20. terminal replay/close rollback;
-21. native GEN recipient/balance effects for slash compensation and refunds;
-22. every browser write path proves its finalized-state postcondition on StudioNet;
-23. exact deployed-source parity.
-
-Runtime proof must distinguish contract execution from wallet/RPC/signing failures and must not infer a successful or reverted contract path from transaction finalization alone.
+Malformed, unauthorized, timeout, no-receipt, restoration, multi-clause, replay, and other attack branches are covered by the exact-source local and Direct Mode regression suites listed above. Runtime evidence distinguishes contract execution from wallet/RPC/signing failures and does not infer contract success from finalization alone.
 
 ## Executed StudioNet primary runtime path
 

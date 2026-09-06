@@ -19,7 +19,7 @@ The visual metaphor follows the protocol model: M0 is the anchor, signed mandate
 - `public/logo.svg` — canonical vector logo.
 - `public/logo.png` — 512×512 PNG export for submission forms and platforms that require raster artwork.
 
-Both use linked orbital rings with cyan and periwinkle nodes. The assets have no external dependency.
+Both use the same two linked rings shown in the application header: cyan on the left and periwinkle on the right. The assets have no external dependency.
 
 ## UI rule
 
