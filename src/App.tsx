@@ -175,40 +175,49 @@ function PageHead({ eyebrow, title, children }: { eyebrow: string; title: string
 }
 
 function Overview({ onStart }: { onStart: () => void }) {
-  return <div className="page">
+  return <div className="page overview-page">
     <PageHead eyebrow="BONDED ACCOUNTABILITY FOR AGENT CHAINS" title="Responsibility should survive delegation.">
       CausalBond makes each delegator pre-post a bond, binds every handoff to a child-signed mandate, and routes money only after a structured receipt proves an original obligation was breached.
     </PageHead>
-    <section className="hero-grid">
-      <div className="hero-card primary-hero">
-        <div className="hero-copy">
+
+    <section className="command-center">
+      <div className="custody-console">
+        <div className="console-copy">
           <div className="hero-label">DELEGATE WORK · NOT RESPONSIBILITY</div>
-          <h2>Accountability follows the mandate, not the messenger.</h2>
-          <p>Every signed handoff stays anchored to original M0. Semantic checks stay binary; the contract handles attribution and moves the bond.</p>
+          <h2>Track the obligation. Route the consequence.</h2>
+          <p>Each accepted mandate is checked against original M0. Validators only answer a bounded yes/no question; deterministic contract logic identifies the responsible edge and settles the posted bond.</p>
           <button className="primary" onClick={onStart}>Create a bonded mandate <span>→</span></button>
         </div>
-        <div className="delegation-orbit" aria-hidden="true">
-          <div className="orbit-ring ring-a" />
-          <div className="orbit-ring ring-b" />
-          <div className="orbit-link link-a" />
-          <div className="orbit-link link-b" />
-          <div className="orbit-node node-origin"><b>M0</b><small>ORIGINAL</small></div>
-          <div className="orbit-node node-mid"><b>M1</b><small>SIGNED</small></div>
-          <div className="orbit-node node-route"><b>M2</b><small>ROUTE</small></div>
-          <span className="orbit-caption">OBLIGATION CUSTODY</span>
+        <div className="custody-map" aria-hidden="true">
+          <div className="map-axis axis-one" />
+          <div className="map-axis axis-two" />
+          <div className="map-orbit orbit-one" />
+          <div className="map-orbit orbit-two" />
+          <div className="map-node map-m0"><b>M0</b><small>ORIGIN</small></div>
+          <div className="map-node map-m1"><b>M1</b><small>SIGNED</small></div>
+          <div className="map-node map-m2"><b>M2</b><small>ROUTE</small></div>
+          <span className="map-caption">MANDATE CUSTODY MAP</span>
+          <span className="map-rule">EVERY CHECK → ORIGINAL M0</span>
         </div>
       </div>
-      <div className="metric-card"><span>SEMANTIC SURFACE</span><strong>1 bit</strong><p>CARRIES / DOES_NOT_CARRY per obligation × edge.</p></div>
-      <div className="metric-card"><span>CHAIN DEPTH</span><strong>≤ 3</strong><p>Fixed MVP depth keeps prompts bounded and reviewable.</p></div>
-      <div className="metric-card"><span>CONSEQUENCE</span><strong>Bond → principal</strong><p>The contract computes the responsible edge and slashes that edge's posted bond.</p></div>
+
+      <aside className="telemetry-stack">
+        <div className="telemetry-row"><span>SEMANTIC SURFACE</span><strong>1 BIT</strong><small>CARRIES / DOES_NOT_CARRY</small></div>
+        <div className="telemetry-row"><span>MAX DEPTH</span><strong>03</strong><small>Bounded handoff chain</small></div>
+        <div className="telemetry-row"><span>SETTLEMENT</span><strong>EDGE</strong><small>Bond routes to principal</small></div>
+        <div className="telemetry-row"><span>ANCHOR</span><strong>M0</strong><small>Never adjacent-parent drift</small></div>
+      </aside>
     </section>
-    <section className="protocol-rail">
-      <div><b>01</b><strong>Lock M0</strong><small>2–4 structured travel obligations</small></div>
-      <span>→</span><div><b>02</b><strong>Bond + sign</strong><small>Parent posts; child accepts exact mandate</small></div>
-      <span>→</span><div><b>03</b><strong>Receipt</strong><small>Designated authority supplies structured outcome</small></div>
-      <span>→</span><div><b>04</b><strong>Route liability</strong><small>Boolean semantic checks + deterministic scan</small></div>
+
+    <section className="custody-ledger">
+      <div className="ledger-head"><span>PROTOCOL SEQUENCE</span><strong>Signed custody → deterministic liability</strong></div>
+      <div className="ledger-row"><b>01</b><div><strong>Lock M0</strong><small>2–4 structured travel obligations become the immutable reference.</small></div><em>ORIGIN</em></div>
+      <div className="ledger-row"><b>02</b><div><strong>Bond + sign</strong><small>Each active liability source is funded before the work advances.</small></div><em>PRE-POSTED</em></div>
+      <div className="ledger-row"><b>03</b><div><strong>Commit receipt</strong><small>The designated authority supplies a strict machine-checkable outcome.</small></div><em>STRUCTURED</em></div>
+      <div className="ledger-row"><b>04</b><div><strong>Route liability</strong><small>Boolean semantic cells feed a deterministic scan and native settlement.</small></div><em>ON-CHAIN</em></div>
     </section>
-    <section className="honest-scope">
+
+    <section className="scope-note">
       <span>HONEST SCOPE</span>
       <p>CausalBond adjudicates the on-chain mandate chain that participants signed and the structured receipt authenticated by the independent receipt authority. It does not independently prove what an agent actually executed in the external world. If both the prime and independent receipt authority remain silent, no receipt-confirmed breach exists and the protocol returns bonds rather than inventing liability.</p>
     </section>

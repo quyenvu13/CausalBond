@@ -13,7 +13,7 @@ python scripts/fence_probe.py
 python scripts/mutation_matrix.py
 ```
 
-Observed on the unchanged contract source used by this R4 package:
+Observed on the unchanged deployed contract source:
 
 ```text
 AST/POLICY: PASS
@@ -38,7 +38,7 @@ npm install
 npm run build
 ```
 
-A dependency-installed Vite build should be rerun in the release environment after any frontend-only patch; do not infer it from source transpilation alone.
+A dependency-installed Vite build should be executed in the deployment environment; source transpilation alone is not treated as a production build result.
 
 ## GenVM lint and Direct Mode
 
@@ -50,7 +50,7 @@ schema: 16 methods / 12 writes present
 typecheck: PASS
 ```
 
-Direct Mode on `genlayer-test==0.29.2` exposed a harness limitation: `VMContext.warp()` does not refresh `gl.message_raw["datetime"]`. The shipped suite uses a small `chain_warp()` helper that updates the same transaction-datetime field after `warp()`, making deadline branches reachable without changing contract code. The exact contract source was independently exercised against the official Direct Mode fixtures, including no-receipt timeout, receipt-confirmed timeout exclusion, unsigned-edge handling, authority separation, and responsibility routing.
+Direct Mode on `genlayer-test==0.29.2` exposed a harness limitation: `VMContext.warp()` does not refresh `gl.message_raw["datetime"]`. The shipped suite uses a small `chain_warp()` helper that updates the same transaction-datetime field after `warp()`, making deadline branches reachable without changing contract code. The exact contract source was executed against the official Direct Mode fixtures, including no-receipt timeout, receipt-confirmed timeout exclusion, unsigned-edge handling, authority separation, and responsibility routing.
 
 Re-run before deployment:
 

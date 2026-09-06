@@ -2,20 +2,24 @@
 
 ## Identity
 
-CausalBond uses an orbital custody / bonded-routing identity designed to be visually distinct from the other project interfaces:
+CausalBond uses a liability command-center / bonded-routing identity:
 
-- deep navy and near-black protocol shell;
+- deep navy and near-black protocol surfaces;
 - cyan / cobalt for active protocol paths and signed custody;
-- amber / gold for bonded value and routed liability;
+- periwinkle / ice-blue for routing and bonded-state accents;
 - coral only for breach / dropped-obligation states;
-- intersecting orbit rings, custody nodes, and the obligation matrix as the core visual motifs;
+- a horizontal protocol dock rather than a fixed application sidebar;
+- an orbital mandate-custody map and vertical protocol ledger as the primary overview motifs;
 - clear modern sans typography with mono micro-labels for hashes, state, and protocol metadata.
 
-The visual metaphor is not a generic neon dashboard: M0 is the anchor, signed mandates travel through an orbital custody path, and liability is routed to the responsible bonded edge.
+The visual metaphor follows the protocol model: M0 is the anchor, signed mandates travel through custody, and deterministic routing assigns the bonded consequence.
 
 ## Logo
 
-`public/logo.svg` is the canonical repository logo. It uses two linked orbital rings with cyan and amber nodes to match the custody / delegation visual system. It has no external asset dependency.
+- `public/logo.svg` — canonical vector logo.
+- `public/logo.png` — 512×512 PNG export for submission forms and platforms that require raster artwork.
+
+Both use linked orbital rings with cyan and periwinkle nodes. The assets have no external dependency.
 
 ## UI rule
 

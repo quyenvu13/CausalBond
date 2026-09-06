@@ -1,4 +1,4 @@
-# CausalBond — deployed R4 summary
+# CausalBond — deployed project summary
 
 CausalBond is a bonded delegation-accountability protocol for signed AI-agent handoffs. Original obligations remain the semantic anchor, validators answer only bounded `CARRIES` / `DOES_NOT_CARRY` questions, and the contract deterministically routes native GEN bond consequences.
 
@@ -12,6 +12,6 @@ CausalBond is a bonded delegation-accountability protocol for signed AI-agent ha
 
 The executed case produced `M1=CARRIES`, `M2=DOES_NOT_CARRY`, deterministic `EDGE_2` liability, `SETTLED_BREACH`, `0.01 GEN` principal compensation, `0.02 GEN` prime refund, `0.01 GEN` Edge-2 parent refund, and a final contract balance of `0 GEN`.
 
-## R4 frontend
+## Frontend
 
-R4 changes only presentation and finalized-action UX. It uses a new orbital custody identity (deep navy, cyan/cobalt, amber) and removes already-completed writes from active action surfaces. The contract remains frozen and byte-identical to the deployed runtime-tested source.
+The interface is a liability command center with a horizontal protocol dock, orbital mandate-custody map, compact telemetry stack, vertical protocol ledger, and the obligation-routing matrix. Action forms remain empty by default, and completed finalized writes are replaced by read-only completion states. The contract is unchanged from the deployed runtime-tested source.

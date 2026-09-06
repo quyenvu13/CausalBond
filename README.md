@@ -66,9 +66,9 @@ The three native outbound transfers are recorded in `RUNTIME_VERIFICATION.md`.
 
 ## Frontend
 
-The R4 interface uses a distinct orbital custody visual system: deep navy, cyan/cobalt protocol paths, amber bonded-value accents, orbital delegation nodes, and the obligation-routing matrix.
+The interface uses a liability command-center visual system: a horizontal protocol dock, deep navy command surfaces, cyan/cobalt custody paths, periwinkle routing accents, an orbital mandate map, and the obligation-routing matrix.
 
-Action forms are empty by default. Completed writes disappear from active action surfaces and are replaced by read-only finalized-state indicators, reducing replay/double-click ambiguity.
+Action forms are empty by default. Completed writes disappear from active action surfaces and are replaced by read-only finalized-state indicators, reducing replay and double-click ambiguity.
 
 The browser does not treat transaction finalization alone as execution success when StudioNet omits `txExecutionResultName`; each write reloads finalized contract state and verifies an action-specific postcondition.
 
