@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.vite/
+__pycache__/
+*.pyc
+.env
+.env.*
+!.env.example
+.DS_Store
+.pytest_cache/
+coverage/
+
+*.tsbuildinfo

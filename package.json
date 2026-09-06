@@ -1,0 +1,30 @@
+{
+  "name": "causalbond",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "check:contract": "python scripts/check_contract_ast.py",
+    "test:logic": "python scripts/test_contract_logic.py",
+    "test:adversarial": "python scripts/test_contract_logic.py --suite adversarial",
+    "test:fence": "python scripts/fence_probe.py",
+    "test:mutations": "python scripts/mutation_matrix.py",
+    "test:direct": "pytest tests/direct -v",
+    "lint:genvm": "genvm-lint check contracts/CausalBond.py && genvm-lint schema contracts/CausalBond.py && genvm-lint typecheck contracts/CausalBond.py",
+    "check": "npm run check:contract && npm run test:logic && npm run test:adversarial && npm run test:fence && npm run test:mutations && npm run build"
+  },
+  "dependencies": {
+    "genlayer-js": "1.1.8",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.5",
+    "@types/react-dom": "18.3.0",
+    "@vitejs/plugin-react": "4.3.1",
+    "typescript": "5.5.4",
+    "vite": "5.4.2"
+  }
+}
