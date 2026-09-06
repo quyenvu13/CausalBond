@@ -1,13 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="CausalBond orbital logo">
-  <defs>
-    <radialGradient id="bg" cx="50%" cy="42%" r="75%"><stop offset="0" stop-color="#10263a"/><stop offset="1" stop-color="#071421"/></radialGradient>
-    <linearGradient id="cyan" x1="0" x2="1"><stop stop-color="#36d6ff"/><stop offset="1" stop-color="#3978ff"/></linearGradient>
-    <linearGradient id="orbit" x1="0" x2="1"><stop stop-color="#a9c2ff"/><stop offset="1" stop-color="#637dff"/></linearGradient>
-  </defs>
-  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
-  <ellipse cx="226" cy="256" rx="128" ry="86" fill="none" stroke="url(#cyan)" stroke-width="24" transform="rotate(-28 226 256)"/>
-  <ellipse cx="286" cy="256" rx="128" ry="86" fill="none" stroke="url(#orbit)" stroke-width="24" transform="rotate(28 286 256)"/>
-  <circle cx="112" cy="238" r="18" fill="#42dfff"/>
-  <circle cx="400" cy="238" r="18" fill="#738cff"/>
-  <circle cx="256" cy="256" r="28" fill="#0a1b2c" stroke="#eaf6ff" stroke-width="10"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="CausalBond linked-rings logo">
+  <rect width="512" height="512" rx="112" fill="#081624"/>
+  <circle cx="212" cy="256" r="112" fill="none" stroke="#35c6ff" stroke-width="38"/>
+  <circle cx="300" cy="256" r="112" fill="none" stroke="#738cff" stroke-width="38"/>
 </svg>
