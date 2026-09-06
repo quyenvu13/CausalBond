@@ -17,7 +17,7 @@ const clauseMeta: Record<ClauseKind, { label: string; unit?: string; placeholder
 };
 
 const routes: Array<{ id: Route; label: string; kicker: string }> = [
-  { id: 'overview', label: 'Overview', kicker: 'Protocol' },
+  { id: 'overview', label: 'Overview', kicker: '00' },
   { id: 'create', label: 'Create Mandate', kicker: '01' },
   { id: 'prime', label: 'Prime Bond', kicker: '02' },
   { id: 'handoff', label: 'Record Handoff', kicker: '03' },
@@ -127,6 +127,7 @@ function App() {
           <div><strong>CausalBond</strong><small>BONDED DELEGATION ROUTING</small></div>
         </div>
         <div className="network-strip"><span className={IS_DEPLOYED ? 'dot live' : 'dot'} /> <b>STUDIONET</b><small>{IS_DEPLOYED ? short(DEFAULT_CONTRACT_ADDRESS, 7) : 'CONFIG REQUIRED'}</small></div>
+        <div className="nav-section-label">PROTOCOL</div>
         <nav>
           {routes.map(item => (
             <button key={item.id} className={route === item.id ? 'active' : ''} onClick={() => navigate(item.id)}>
