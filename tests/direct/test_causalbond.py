@@ -1,4 +1,6 @@
 import json
+
+from conftest import CONTRACT, GENVM_VERSION
 import sys
 from datetime import datetime, timezone
 
@@ -42,7 +44,7 @@ def test_transaction_datetime_is_persisted_deterministically(
     direct_vm, direct_deploy, direct_alice, direct_bob, direct_charlie
 ):
     chain_warp(direct_vm, "2026-09-06T00:00:00Z")
-    contract = direct_deploy("contracts/CausalBond.py")
+    contract = direct_deploy(CONTRACT, sdk_version=GENVM_VERSION)
     direct_vm.sender = direct_alice
     case_id = contract.create_mandate(
         "clock-case", addr(direct_bob), addr(direct_charlie), clauses(), 1000, 3600
@@ -56,7 +58,7 @@ def test_transaction_datetime_is_persisted_deterministically(
 def test_receipt_authority_must_be_independent(
     direct_vm, direct_deploy, direct_alice, direct_bob
 ):
-    contract = direct_deploy("contracts/CausalBond.py")
+    contract = direct_deploy(CONTRACT, sdk_version=GENVM_VERSION)
     direct_vm.sender = direct_alice
     with direct_vm.expect_revert("RECEIPT_AUTHORITY_MUST_DIFFER_FROM_PRINCIPAL"):
         contract.create_mandate(
@@ -71,7 +73,7 @@ def test_receipt_authority_must_be_independent(
 def test_receipt_authority_cannot_become_chain_agent(
     direct_vm, direct_deploy, direct_alice, direct_bob, direct_charlie
 ):
-    contract = direct_deploy("contracts/CausalBond.py")
+    contract = direct_deploy(CONTRACT, sdk_version=GENVM_VERSION)
     direct_vm.sender = direct_alice
     case_id = contract.create_mandate(
         "authority-chain", addr(direct_bob), addr(direct_charlie), clauses(), 1000, 3600
@@ -88,7 +90,7 @@ def test_pending_unsigned_handoff_cannot_block_receipt(
     direct_vm, direct_deploy, direct_alice, direct_bob, direct_charlie, direct_owner
 ):
     principal, prime, authority, child = direct_alice, direct_bob, direct_charlie, direct_owner
-    contract = direct_deploy("contracts/CausalBond.py")
+    contract = direct_deploy(CONTRACT, sdk_version=GENVM_VERSION)
     direct_vm.sender = principal
     case_id = contract.create_mandate(
         "pending-receipt", addr(prime), addr(authority), clauses(), 1000, 3600
@@ -112,7 +114,7 @@ def test_no_receipt_timeout_returns_bonds_without_breach_claim(
     direct_vm, direct_deploy, direct_alice, direct_bob, direct_charlie
 ):
     chain_warp(direct_vm, "2026-09-06T00:00:00Z")
-    contract = direct_deploy("contracts/CausalBond.py")
+    contract = direct_deploy(CONTRACT, sdk_version=GENVM_VERSION)
     direct_vm.sender = direct_alice
     case_id = contract.create_mandate(
         "no-receipt", addr(direct_bob), addr(direct_charlie), clauses(), 1000, 600
@@ -134,7 +136,7 @@ def test_no_receipt_timeout_returns_bonds_without_breach_claim(
 def test_unsigned_trailing_edge_must_not_enter_the_carries_vector(
     direct_vm, direct_deploy, direct_alice, direct_bob, direct_charlie, direct_owner
 ):
-    contract = direct_deploy("contracts/CausalBond.py")
+    contract = direct_deploy(CONTRACT, sdk_version=GENVM_VERSION)
     direct_vm.sender = direct_alice
     case_id = contract.create_mandate(
         "unsigned-vector", addr(direct_bob), addr(direct_charlie), clauses(), 1000, 3600

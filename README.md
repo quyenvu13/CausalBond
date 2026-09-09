@@ -92,7 +92,15 @@ Adversarial logic               18/18 PASS
 Prompt fence                    0/12 bypasses
 Mutation matrix                 23/23 caught
 GenVM lint/schema/typecheck     PASS on exact contract SHA
-Direct Mode regressions         PASS on exact contract SHA
+Direct Mode regressions         8/8 PASS on real GenVM (pinned v0.2.12)
 ```
+
+Two of those eight rebuild the executed StudioNet settlement on GenVM — the
+deterministic breach predicate, the per-edge carries vector, the responsibility
+routing that produced `EDGE_2` liability, the slash total, and every bond
+released to zero — plus the prime-fallback case where a genuine breach occurs and
+no delegation edge dropped the obligation. The native transfers themselves are
+proven on StudioNet with transaction hashes, because Direct Mode's message mock
+does not capture `emit_transfer`.
 
 See `TESTING.md`, `RUNTIME_VERIFICATION.md`, `SECURITY_ASSURANCE.md`, `SECURITY_DECISIONS.md`, and `LOCKED_SPEC.md`.

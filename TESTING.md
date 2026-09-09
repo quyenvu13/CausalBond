@@ -55,16 +55,46 @@ Direct Mode on `genlayer-test==0.29.2` exposed a harness limitation: `VMContext.
 To reproduce the Direct Mode regression suite locally:
 
 ```bash
-pytest -q tests/direct/test_causalbond.py
+pytest -q tests/direct/
 ```
 
-Direct Mode covers deadline, role, malformed-input, restoration, fallback, and recovery branches on the exact contract source. Native transfer recipient/value effects are proven separately on StudioNet because the Direct Mode message mock does not capture `emit_transfer`.
+```text
+8 passed
+```
+
+`tests/direct/conftest.py` pins the GenVM build (`v0.2.12`, overridable with
+`GENVM_VERSION`). Without it, `direct_deploy` resolves "latest" at run time, so a
+clean machine executes a runtime this contract was never verified against, and a
+withdrawn release returns 404 instead of a test result.
+
+`test_causalbond.py` covers deadline, role, malformed-input, restoration,
+fallback, and recovery branches on the exact contract source.
+
+`test_settlement_probe.py` covers the economic path. The native transfers
+themselves cannot be asserted locally — `_emit` goes out through `emit_transfer`
+on a `@gl.evm.contract_interface`, and the Direct Mode message mock does not
+capture the outgoing message, which is why recipient and value effects are proven
+on StudioNet instead. Everything up to the transfer is asserted here:
+
+- `test_the_live_settlement_reproduces_on_genvm` rebuilds the executed StudioNet
+  scenario — the same two clauses, the same structured receipt, one mandate
+  carrying the obligation and one dropping it — and asserts the same results the
+  live run recorded: `breached_clause_indexes = [0]`, `evaluations["0:1"] = CARRIES`,
+  `evaluations["0:2"] = DOES_NOT_CARRY`, `responsible_edge = 2`,
+  `liability = EDGE_2`, compensation equal to one `bond_per_clause`,
+  `status = SETTLED_BREACH`, and every bond released to zero. The live settlement
+  is therefore a regression test rather than a single observation.
+- `test_prime_is_liable_by_fallback_when_no_edge_dropped_the_obligation` covers
+  the case the design most has to get right: a genuine breach where every
+  recorded mandate still carried the obligation. No delegation edge lost it, so
+  liability must still land somewhere rather than nowhere — it falls back to the
+  prime deterministically, `responsible_edge = 0`, `liability = PRIME_LIABLE`.
 
 ## Runtime coverage boundary
 
 The executed StudioNet primary path proves the load-bearing economic flow: exact prime bond acceptance, signed Edge 1 and Edge 2 delegation, a structured receipt with one deterministic breach, one `CARRIES` and one `DOES_NOT_CARRY` semantic result, deterministic `EDGE_2` liability, native slash compensation, native refunds, terminal settlement, and zero remaining contract balance.
 
-Malformed, unauthorized, timeout, no-receipt, restoration, multi-clause, replay, and other attack branches are covered by the exact-source local and Direct Mode regression suites listed above. Runtime evidence distinguishes contract execution from wallet/RPC/signing failures and does not infer contract success from finalization alone.
+Malformed, unauthorized, timeout, no-receipt, restoration, multi-clause, replay, and other attack branches are covered by the exact-source local and Direct Mode regression suites listed above. The settlement arithmetic that produced the live payouts — breach predicate, per-edge carries vector, deterministic responsibility routing, slash totals and bond release — is additionally reproduced on real GenVM in `tests/direct/test_settlement_probe.py`, so the economic result does not rest on the single live run alone. Runtime evidence distinguishes contract execution from wallet/RPC/signing failures and does not infer contract success from finalization alone.
 
 ## Executed StudioNet primary runtime path
 

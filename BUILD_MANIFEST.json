@@ -26,7 +26,8 @@
     "mutation_matrix": "23/23 caught",
     "typescript_transpile_syntax": "PASS",
     "genvm_lint": "PASS on exact contract SHA",
-    "direct_mode": "PASS on exact contract SHA"
+    "direct_mode": "8/8 PASS on real GenVM, pinned v0.2.12",
+    "build_checksums": "37/37 OK"
   },
   "runtime_evidence": {
     "primary_path": "PASS",
@@ -36,5 +37,6 @@
     "edge_2_parent_refund": "0.01 GEN",
     "contract_balance_after_settlement": "0 GEN"
   },
-  "production_build_note": "Repository source is production-oriented; run npm install && npm run build in the deployment environment for a dependency-installed build check."
+  "production_build_note": "Repository source is production-oriented; run npm install && npm run build in the deployment environment for a dependency-installed build check.",
+  "settlement_regression": "tests/direct/test_settlement_probe.py reproduces the executed StudioNet settlement on GenVM (breach predicate, carries vector, EDGE_2 responsibility routing, slash total, all bonds released) plus the prime-fallback case. Native transfers remain proven on StudioNet by transaction hash because Direct Mode does not capture emit_transfer."
 }
