@@ -119,3 +119,30 @@ contract balance after settlement 0 GEN PASS
 ```
 
 See `RUNTIME_VERIFICATION.md` for the exact case and outbound transaction hashes.
+
+
+## Live dApp liability-trail evidence
+
+A second end-to-end walkthrough was executed through the deployed CausalBond dApp against the same frozen StudioNet contract. This evidence is organized as a **liability trail** rather than a transaction-by-transaction Studio trace: it shows the mandate chain, the receipt-confirmed breach, the two bounded semantic cells, deterministic liability routing, and the released bond state in the reviewer-facing interface.
+
+- dApp case reference: `cb-dapp-proof`
+- dApp Case ID: `cf51e92c1718257ee14d5ad8aa9b1933d471e98dcc1b44d0f03b5114edd8a8d7`
+- Contract: `0x01a6BEab9324ACFADa32Af8cc1070049E0e97Da3`
+- Contract SHA-256: `52522a405a536ff385d888efa29eb6acbda02f5686656275c1565555be83c76e`
+
+Observed finalized checkpoints:
+
+| Evidence | Finalized checkpoint |
+|---|---|
+| `A_M0_LOCKED.png` | M0 created with two original clauses; status `AWAITING_PRIME_ACCEPTANCE`; required prime bond `0.02 GEN` |
+| `B_PRIME_BOND_ACTIVE.png` | Prime accepted the exact mandate and the case advanced to `ACTIVE` |
+| `C_SIGNED_DELEGATION_CHAIN.png` | Edge 1 and Edge 2 were child-signed; M1 preserved refundability while M2 omitted it |
+| `D_BREACH_ROUTE_OPEN.png` | Structured receipt produced exactly one deterministic breach; semantic matrix opened at `0/2` |
+| `E1_M1_CARRIES.png` | M1 evaluated `CARRIES`; matrix progress `1/2` |
+| `E2_M2_DOES_NOT_CARRY.png` | M2 evaluated `DOES_NOT_CARRY`; matrix progress `2/2` |
+| `F_EDGE2_LIABILITY_SETTLED.png` | Deterministic routing selected `EDGE_2`; terminal status `SETTLED_BREACH` |
+| `G_SETTLED_BONDS_ZERO.png` | Both signed handoff records remained visible with `bond 0 wei` after settlement |
+
+Screenshots are stored under `evidence/liability-trail/`.
+
+This dApp walkthrough is complementary to `RUNTIME_VERIFICATION.md`. The UI snapshots prove the finalized contract state and reviewer-facing liability path; the earlier StudioNet runtime record remains the source for the exact native outbound transfer transaction hashes and amounts. Transaction finalization alone is not treated as success: every checkpoint above was captured only after the dApp reloaded and verified the corresponding finalized post-state.

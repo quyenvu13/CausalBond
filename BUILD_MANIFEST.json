@@ -1,6 +1,6 @@
 {
   "project": "CausalBond",
-  "stage": "DEPLOYED_RUNTIME_VERIFIED_COMMAND_CENTER_UI",
+  "stage": "DEPLOYED_RUNTIME_VERIFIED_DAPP_LIABILITY_TRAIL",
   "network": "GenLayer StudioNet",
   "deployment_address": "0x01a6BEab9324ACFADa32Af8cc1070049E0e97Da3",
   "contract_source": "contracts/CausalBond.py",
@@ -28,7 +28,7 @@
     "typescript_transpile_syntax": "PASS",
     "genvm_lint": "PASS on exact contract SHA",
     "direct_mode": "8/8 PASS on real GenVM, pinned v0.2.12",
-    "build_checksums": "37/37 OK"
+    "build_checksums": "45/45 OK"
   },
   "runtime_evidence": {
     "primary_path": "PASS",
@@ -36,7 +36,21 @@
     "principal_compensation": "0.01 GEN",
     "prime_refund": "0.02 GEN",
     "edge_2_parent_refund": "0.01 GEN",
-    "contract_balance_after_settlement": "0 GEN"
+    "contract_balance_after_settlement": "0 GEN",
+    "dapp_liability_trail": {
+      "case_reference": "cb-dapp-proof",
+      "case_id": "cf51e92c1718257ee14d5ad8aa9b1933d471e98dcc1b44d0f03b5114edd8a8d7",
+      "snapshot_directory": "evidence/liability-trail",
+      "snapshot_count": 8,
+      "final_status": "SETTLED_BREACH",
+      "semantic_vector": [
+        "CARRIES",
+        "DOES_NOT_CARRY"
+      ],
+      "liability": "EDGE_2",
+      "signed_handoff_bonds_after_settlement": "0 wei / 0 wei",
+      "scope_note": "Reviewer-facing dApp state proof; exact native outbound transfer hashes and amounts remain documented in RUNTIME_VERIFICATION.md."
+    }
   },
   "production_build_note": "Repository source is production-oriented; run npm install && npm run build in the deployment environment for a dependency-installed build check.",
   "settlement_regression": "tests/direct/test_settlement_probe.py reproduces the executed StudioNet settlement on GenVM (breach predicate, carries vector, EDGE_2 responsibility routing, slash total, all bonds released) plus the prime-fallback case. Native transfers remain proven on StudioNet by transaction hash because Direct Mode does not capture emit_transfer."
