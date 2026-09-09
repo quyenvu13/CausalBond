@@ -9,6 +9,26 @@ type WalletState = { account: `0x${string}`; client: any } | null;
 
 const ZERO = '0x0000000000000000000000000000000000000000';
 
+// Synchronous UI write lock. React state updates are asynchronous, so a fast
+// double-click can enter the same handler twice before `pending` re-renders the
+// button as disabled. This guard closes that pre-render window.
+let mutationInFlight = false;
+
+function beginMutation(setPending: (value: boolean) => void, setNotice: (value: string) => void) {
+  if (mutationInFlight) {
+    setNotice('A transaction is already in progress. Wait for finalized-state verification before submitting another action.');
+    return false;
+  }
+  mutationInFlight = true;
+  setPending(true);
+  return true;
+}
+
+function endMutation(setPending: (value: boolean) => void) {
+  mutationInFlight = false;
+  setPending(false);
+}
+
 const clauseMeta: Record<ClauseKind, { label: string; unit?: string; placeholder?: string }> = {
   REFUNDABLE_REQUIRED: { label: 'Refundable required' },
   MAX_TOTAL_PRICE_USD: { label: 'Maximum total price', unit: 'USD', placeholder: '300' },
@@ -117,7 +137,7 @@ function App() {
     finally { setPending(false); }
   };
 
-  const shellClass = `app-shell route-${route}`;
+  const shellClass = `app-shell route-${route}${pending ? ' is-pending' : ''}`;
 
   return (
     <div className={shellClass}>
@@ -155,6 +175,8 @@ function App() {
         </header>
 
         {notice && <div className="notice"><span>●</span>{notice}{txHash && <small>tx {short(txHash, 10)}</small>}</div>}
+
+        {pending && <div className="notice pending-notice" role="status" aria-live="polite"><span>●</span>Transaction in progress · controls locked until finalized state is verified.</div>}
 
         {route === 'overview' && <Overview onStart={() => navigate('create')} />}
         {route === 'create' && <CreateMandate wallet={wallet} setCaseId={setCaseId} setCaseState={setCaseState} setNotice={setNotice} setTxHash={setTxHash} setPending={setPending} navigate={navigate} />}
@@ -239,8 +261,9 @@ function CreateMandate({ wallet, setCaseId, setCaseState, setNotice, setTxHash, 
 
   const submit = async () => {
     if (!wallet || !IS_DEPLOYED || !valid) return;
+    if (!beginMutation(setPending, setNotice)) return;
     try {
-      setPending(true); setNotice(''); setTxHash('');
+      setNotice(''); setTxHash('');
       await writeAndFinalize(wallet.client, DEFAULT_CONTRACT_ADDRESS, 'create_mandate', [caseRef.trim(), prime.trim(), receiptAuthority.trim(), JSON.stringify(clauses), BigInt(bondPer), Number(windowSeconds)], 0n, setTxHash);
       const id = await readString(DEFAULT_CONTRACT_ADDRESS, 'derive_case_id', [wallet.account, caseRef.trim()]);
       const st = await readJson<CaseState>(DEFAULT_CONTRACT_ADDRESS, 'get_case', [id]);
@@ -250,7 +273,7 @@ function CreateMandate({ wallet, setCaseId, setCaseState, setNotice, setTxHash, 
       requireFinalized(sameAddress(st.prime_agent, prime.trim()), 'created case prime must match the submitted prime');
       requireFinalized(sameAddress(st.receipt_authority, receiptAuthority.trim()), 'created case receipt authority must match the submitted authority');
       setCaseId(id); setCaseState(st); setNotice('Mandate created and verified in finalized state.'); navigate('prime');
-    } catch (e: any) { setNotice(e?.message ?? String(e)); } finally { setPending(false); }
+    } catch (e: any) { setNotice(e?.message ?? String(e)); } finally { endMutation(setPending); }
   };
 
   return <div className="page">
@@ -285,14 +308,15 @@ function CaseLoader({ caseId, setCaseId, loadCase, caseState }: any) {
 function PrimeBond({ wallet, caseId, setCaseId, caseState, loadCase, setNotice, setTxHash, setPending }: any) {
   const accept = async () => {
     if (!wallet || !caseState || !IS_DEPLOYED) return;
+    if (!beginMutation(setPending, setNotice)) return;
     try {
-      setPending(true); setNotice('');
+      setNotice('');
       await writeAndFinalize(wallet.client, DEFAULT_CONTRACT_ADDRESS, 'accept_prime_mandate', [caseState.case_id], BigInt(caseState.required_bond_wei), setTxHash);
       const after = await loadCase(caseState.case_id);
       requireFinalized(after?.status === 'ACTIVE', 'prime acceptance must move the case to ACTIVE');
       requireFinalized(weiEqual(after?.prime_bond_locked, caseState.required_bond_wei), 'prime bond must equal the required bond');
       setNotice('Prime bond accepted and verified in finalized state.');
-    } catch (e: any) { setNotice(e?.message ?? String(e)); } finally { setPending(false); }
+    } catch (e: any) { setNotice(e?.message ?? String(e)); } finally { endMutation(setPending); }
   };
   return <div className="page"><PageHead eyebrow="02 · PRE-POSTED CONSEQUENCE" title="Prime accepts with a bond">The first liability source is funded before work starts. The bond is not chosen by validators and cannot be withdrawn after acceptance.</PageHead><CaseLoader {...{caseId,setCaseId,loadCase,caseState}} />{caseState && <section className="panel action-panel"><div className="bond-big"><span>REQUIRED PRIME BOND</span><strong>{prettyWei(caseState.required_bond_wei)} wei</strong><small>{caseState.clauses.length} clauses × {prettyWei(caseState.bond_per_clause_wei)} wei</small></div><div className="role-check"><span>Expected wallet</span><code>{caseState.prime_agent}</code><small>Connected: {wallet ? wallet.account : 'not connected'}</small></div>{caseState.status === 'AWAITING_PRIME_ACCEPTANCE' ? <button className="primary" onClick={accept} disabled={!wallet}>Accept mandate + lock bond</button> : <div className="action-complete"><span>✓</span><div><b>Prime mandate accepted</b><small>This action is closed in finalized state.</small></div></div>}</section>}</div>;
 }
@@ -304,8 +328,8 @@ function Handoff({ wallet, caseId, setCaseId, caseState, loadCase, setNotice, se
   const record = async () => {
     if (!wallet || !caseState || !child.trim() || !mandate.trim()) return;
     const next = caseState.edges.length + 1; const value = next === 1 ? 0n : BigInt(caseState.required_bond_wei);
+    if (!beginMutation(setPending, setNotice)) return;
     try {
-      setPending(true);
       await writeAndFinalize(wallet.client, DEFAULT_CONTRACT_ADDRESS, 'record_handoff', [caseState.case_id, child.trim(), mandate.trim()], value, setTxHash);
       const after = await loadCase(caseState.case_id);
       const edge = after?.edges.find((e: any) => e.edge_index === next);
@@ -313,12 +337,12 @@ function Handoff({ wallet, caseId, setCaseId, caseState, loadCase, setNotice, se
       requireFinalized(after?.pending_edge_index === next, 'pending edge index must match the new handoff');
       requireFinalized(edge && sameAddress(edge.child, child.trim()) && edge.accepted === false, 'new edge must bind the submitted child and remain unsigned');
       setChild(''); setMandate(''); setNotice(`Handoff edge ${next} recorded and verified; child signature required.`);
-    } catch(e:any){setNotice(e?.message??String(e));} finally{setPending(false);}
+    } catch(e:any){setNotice(e?.message??String(e));} finally{endMutation(setPending);}
   };
   const accept = async () => {
     if (!wallet || !caseState || !edgeInput) return;
+    if (!beginMutation(setPending, setNotice)) return;
     try {
-      setPending(true);
       const target = Number(edgeInput);
       await writeAndFinalize(wallet.client, DEFAULT_CONTRACT_ADDRESS, 'accept_handoff', [caseState.case_id, target], 0n, setTxHash);
       const after = await loadCase(caseState.case_id);
@@ -326,7 +350,7 @@ function Handoff({ wallet, caseId, setCaseId, caseState, loadCase, setNotice, se
       requireFinalized(after?.status === 'ACTIVE', 'accepted handoff must return the case to ACTIVE');
       requireFinalized(edge?.accepted === true && sameAddress(after?.current_executor, edge?.child), 'accepted child must become the current executor');
       setNotice('Child signature and executor transition verified in finalized state.');
-    } catch(e:any){setNotice(e?.message??String(e));} finally{setPending(false);}
+    } catch(e:any){setNotice(e?.message??String(e));} finally{endMutation(setPending);}
   };
   return <div className="page"><PageHead eyebrow="03 · SIGNED DELEGATION" title="Record one handoff at a time">The parent records the mandate; the designated child must sign that exact text before the chain advances.</PageHead><CaseLoader {...{caseId,setCaseId,loadCase,caseState}} />{caseState && <div className="two-col"><section className="panel form-panel"><div className="panel-title"><span>RECORD NEXT EDGE</span><b>{caseState.edges.length}/3</b></div><label>Child agent<input value={child} onChange={e=>setChild(e.target.value)} placeholder="0x…" /></label><label>Mandate text<textarea value={mandate} onChange={e=>setMandate(e.target.value)} placeholder="Write the exact mandate the child will receive and sign" maxLength={2400}/></label><div className="bond-note"><span>Bond source</span><strong>{caseState.edges.length === 0 ? 'Prime bond already locked' : `${prettyWei(caseState.required_bond_wei)} wei attached by parent`}</strong></div>{caseState.status === 'ACTIVE' && caseState.edges.length < 3 ? <button className="primary wide" onClick={record} disabled={!wallet || !child.trim() || !mandate.trim()}>Record handoff</button> : <div className="action-complete compact"><span>✓</span><div><b>Record action unavailable</b><small>State has advanced beyond this write surface.</small></div></div>}</section><section className="panel form-panel"><div className="panel-title"><span>CHILD SIGNATURE</span><b>ACCEPT</b></div><label>Pending edge index<input inputMode="numeric" value={edgeInput} onChange={e=>setEdgeInput(e.target.value.replace(/\D/g,''))} placeholder="1, 2, or 3" /></label><p className="instruction">Only the child address recorded on that edge can accept. Acceptance attests to the exact stored mandate text; it does not prove external execution.</p>{caseState.status === 'HANDOFF_PENDING_ACCEPTANCE' ? <button className="secondary wide" onClick={accept} disabled={!wallet || !edgeInput}>Sign accepted mandate</button> : <div className="action-complete compact"><span>✓</span><div><b>No signature pending</b><small>Accepted handoffs are read-only here.</small></div></div>}<ChainMini state={caseState}/></section></div>}</div>;
 }
@@ -342,14 +366,14 @@ function Receipt({ wallet, caseId, setCaseId, caseState, loadCase, setNotice, se
   const submit = async () => {
     if (!wallet || !caseState || !valid) return;
     const receipt={refundable: refundable==='true', total_price_usd:Number(price), cancellation_hours:Number(hours), checkin_unix:Number(checkin)};
+    if (!beginMutation(setPending, setNotice)) return;
     try{
-      setPending(true);
       await writeAndFinalize(wallet.client,DEFAULT_CONTRACT_ADDRESS,'submit_receipt',[caseState.case_id,JSON.stringify(receipt)],0n,setTxHash);
       const after=await loadCase(caseState.case_id);
       requireFinalized(after && ['RECEIPT_NO_BREACH','EVALUATING_BREACH'].includes(after.status), 'receipt submission must commit a receipt state');
       requireFinalized(after?.receipt && typeof after.receipt.refundable === 'boolean', 'finalized receipt must be stored');
       setNotice('Structured receipt and deterministic breach set verified in finalized state.');
-    }catch(e:any){setNotice(e?.message??String(e));}finally{setPending(false);}
+    }catch(e:any){setNotice(e?.message??String(e));}finally{endMutation(setPending);}
   };
   return <div className="page"><PageHead eyebrow="04 · AUTHENTICATED OUTCOME INPUT" title="Submit a structured receipt">Only the independent receipt authority may submit. A recorded but unsigned final handoff cannot block receipt submission; only child-accepted edges enter semantic evaluation.</PageHead><CaseLoader {...{caseId,setCaseId,loadCase,caseState}} />{caseState && <div className="two-col"><section className="panel form-panel"><div className="panel-title"><span>TRAVEL RECEIPT</span><b>STRICT SCHEMA</b></div><label>Refundable<select value={refundable} onChange={e=>setRefundable(e.target.value)}><option value="">Choose…</option><option value="true">true</option><option value="false">false</option></select></label><div className="field-grid"><label>Total price (USD)<input inputMode="numeric" value={price} onChange={e=>setPrice(e.target.value.replace(/\D/g,''))} placeholder="Actual total price" /></label><label>Cancellation hours<input inputMode="numeric" value={hours} onChange={e=>setHours(e.target.value.replace(/\D/g,''))} placeholder="Actual free-cancellation hours" /></label></div><label>Check-in Unix timestamp<input inputMode="numeric" value={checkin} onChange={e=>setCheckin(e.target.value.replace(/\D/g,''))} placeholder="Actual check-in timestamp" /></label>{['ACTIVE','HANDOFF_PENDING_ACCEPTANCE'].includes(caseState.status) ? <button className="primary wide" disabled={!wallet || !valid} onClick={submit}>Commit receipt</button> : caseState.receipt ? <div className="action-complete"><span>✓</span><div><b>Receipt committed</b><small>Finalized receipt is now read-only.</small></div></div> : null}</section><aside className="panel preview-panel"><div className="panel-title"><span>RECEIPT AUTHORITY</span><b>PROVENANCE</b></div><code className="address-block">{caseState.receipt_authority}</code><p className="instruction">CausalBond authenticates who submitted this structured receipt. It does not independently attest the off-chain booking itself.</p><div className="deadline"><span>Execution deadline</span><strong>{unixTime(caseState.execution_deadline_unix)}</strong></div></aside></div>}</div>;
 }
@@ -358,8 +382,8 @@ function Evaluate({ wallet, caseId, setCaseId, caseState, loadCase, setNotice, s
   const [clauseIndex, setClauseIndex] = useState(''); const [edgeIndex, setEdgeIndex] = useState('');
   const evaluate = async () => {
     if (!wallet || !caseState || clauseIndex==='' || !edgeIndex) return;
+    if (!beginMutation(setPending, setNotice)) return;
     try{
-      setPending(true);
       const ci=Number(clauseIndex), ei=Number(edgeIndex), before=caseState.evaluation_count;
       requireFinalized(!caseState.evaluations?.[`${ci}:${ei}`], 'selected matrix cell must be unevaluated before submission');
       await writeAndFinalize(wallet.client,DEFAULT_CONTRACT_ADDRESS,'evaluate_edge',[caseState.case_id,ci,ei],0n,setTxHash);
@@ -368,29 +392,29 @@ function Evaluate({ wallet, caseId, setCaseId, caseState, loadCase, setNotice, s
       requireFinalized(decision==='CARRIES' || decision==='DOES_NOT_CARRY', 'evaluated matrix cell must exist in finalized state');
       requireFinalized(after?.evaluation_count===before+1, 'evaluation count must increment exactly once');
       setNotice('One bounded semantic cell verified in finalized state.');
-    }catch(e:any){setNotice(e?.message??String(e));}finally{setPending(false);}
+    }catch(e:any){setNotice(e?.message??String(e));}finally{endMutation(setPending);}
   };
   const finalize = async () => {
     if(!wallet||!caseState)return;
+    if (!beginMutation(setPending, setNotice)) return;
     try{
-      setPending(true);
       await writeAndFinalize(wallet.client,DEFAULT_CONTRACT_ADDRESS,'finalize_dispute',[caseState.case_id],0n,setTxHash);
       const after=await loadCase(caseState.case_id);
       requireFinalized(after?.status==='SETTLED_BREACH' && after?.settlement?.type==='BREACH_SETTLED', 'breach settlement must be terminal and recorded');
       requireFinalized(weiEqual(after?.prime_bond_locked,0) && (after?.edges||[]).every((e:any)=>weiEqual(e.bond_locked,0)), 'all settled bond balances must be zero');
       setNotice('Liability routing and bond settlement verified in finalized state.');
-    }catch(e:any){setNotice(e?.message??String(e));}finally{setPending(false);}
+    }catch(e:any){setNotice(e?.message??String(e));}finally{endMutation(setPending);}
   };
   const settleNoBreach=async()=>{
     if(!wallet||!caseState)return;
+    if (!beginMutation(setPending, setNotice)) return;
     try{
-      setPending(true);
       await writeAndFinalize(wallet.client,DEFAULT_CONTRACT_ADDRESS,'settle_no_breach',[caseState.case_id],0n,setTxHash);
       const after=await loadCase(caseState.case_id);
       requireFinalized(after?.status==='SETTLED_SUCCESS' && after?.settlement?.type==='NO_BREACH', 'no-breach settlement must be terminal and recorded');
       requireFinalized(weiEqual(after?.prime_bond_locked,0) && (after?.edges||[]).every((e:any)=>weiEqual(e.bond_locked,0)), 'all released bond balances must be zero');
       setNotice('No-breach bond release verified in finalized state.');
-    }catch(e:any){setNotice(e?.message??String(e));}finally{setPending(false);}
+    }catch(e:any){setNotice(e?.message??String(e));}finally{endMutation(setPending);}
   };
   return <div className="page"><PageHead eyebrow="05 · DETERMINISTIC ATTRIBUTION" title="Route liability from a boolean matrix">Every semantic call asks about one original obligation and one signed mandate. Once the matrix is complete, the contract scans it and moves money.</PageHead><CaseLoader {...{caseId,setCaseId,loadCase,caseState}} />{caseState && <><LiabilityMatrix state={caseState}/><section className="panel evaluate-actions"><div><span>PROGRESS</span><strong>{caseState.evaluation_count}/{caseState.required_evaluations}</strong><small>{caseState.breached_clause_indexes.length} breached clause(s)</small></div>{caseState.status==='EVALUATING_BREACH' && <div className="inline-actions"><select value={clauseIndex} onChange={e=>setClauseIndex(e.target.value)}><option value="">Breached clause…</option>{caseState.breached_clause_indexes.map((i: number)=><option key={i} value={i}>Clause {i+1}</option>)}</select><select value={edgeIndex} onChange={e=>setEdgeIndex(e.target.value)}><option value="">Edge…</option>{caseState.edges.filter((e: Edge)=>e.accepted).map((e: Edge)=><option key={e.edge_index} value={e.edge_index}>M{e.edge_index}</option>)}</select><button className="secondary" onClick={evaluate} disabled={!wallet || clauseIndex==='' || !edgeIndex}>Evaluate cell</button><button className="primary" onClick={finalize} disabled={!wallet || caseState.evaluation_count!==caseState.required_evaluations}>Finalize routing</button></div>}{caseState.status==='RECEIPT_NO_BREACH' && <button className="primary" disabled={!wallet} onClick={settleNoBreach}>Release all bonds</button>}</section></>}</div>;
 }
@@ -399,13 +423,14 @@ function Evaluate({ wallet, caseId, setCaseId, caseState, loadCase, setNotice, s
 function Recovery({ wallet, caseId, setCaseId, caseState, loadCase, setNotice, setTxHash, setPending }: any) {
   const run = async (method: string, args: unknown[], verify: (after: CaseState | null) => void, success: string) => {
     if (!wallet || !caseState) return;
+    if (!beginMutation(setPending, setNotice)) return;
     try {
-      setPending(true); setNotice('');
+      setNotice('');
       await writeAndFinalize(wallet.client, DEFAULT_CONTRACT_ADDRESS, method, args, 0n, setTxHash);
       const after = await loadCase(caseState.case_id);
       verify(after);
       setNotice(success);
-    } catch (e: any) { setNotice(e?.message ?? String(e)); } finally { setPending(false); }
+    } catch (e: any) { setNotice(e?.message ?? String(e)); } finally { endMutation(setPending); }
   };
 
   const cancelBeforePrime = () => run(

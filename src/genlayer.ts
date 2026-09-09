@@ -4,6 +4,10 @@ import { TransactionHashVariant, TransactionStatus } from 'genlayer-js/types';
 
 export const readClient = createClient({ chain: studionet });
 
+// Defense in depth: reject a second write even if a UI event bypasses the
+// button lock (for example, a same-frame double click before React re-renders).
+let writeInFlight = false;
+
 export async function connectWallet() {
   if (!window.ethereum) throw new Error('No EIP-1193 wallet detected.');
   const accounts = (await window.ethereum.request({ method: 'eth_requestAccounts' })) as string[];
@@ -32,18 +36,26 @@ export async function writeAndFinalize(
   value: bigint = 0n,
   onHash?: (hash: string) => void,
 ) {
-  const submitted = await client.writeContract({ address, functionName, args: args as any[], value });
-  if (typeof submitted !== 'string' || !submitted) throw new Error('writeContract returned no transaction id.');
-  onHash?.(submitted);
-  const receipt = await client.waitForTransactionReceipt({ hash: submitted, status: TransactionStatus.FINALIZED, interval: 4000, retries: 40 });
-  const execution = receipt?.txExecutionResultName ?? null;
-  if (execution && execution !== 'FINISHED_WITH_RETURN') {
-    throw new Error(`Contract execution failed or did not return successfully: ${execution}`);
+  if (writeInFlight) {
+    throw new Error('A transaction is already in progress. Wait for finalized-state verification before submitting another write.');
   }
-  // StudioNet may omit txExecutionResultName on finalized transactions. Finalization
-  // alone is not treated as success: every caller must verify a contract-state
-  // postcondition before displaying a success message.
-  return { hash: submitted, receipt, executionVerified: execution === 'FINISHED_WITH_RETURN' };
+  writeInFlight = true;
+  try {
+    const submitted = await client.writeContract({ address, functionName, args: args as any[], value });
+    if (typeof submitted !== 'string' || !submitted) throw new Error('writeContract returned no transaction id.');
+    onHash?.(submitted);
+    const receipt = await client.waitForTransactionReceipt({ hash: submitted, status: TransactionStatus.FINALIZED, interval: 4000, retries: 40 });
+    const execution = receipt?.txExecutionResultName ?? null;
+    if (execution && execution !== 'FINISHED_WITH_RETURN') {
+      throw new Error(`Contract execution failed or did not return successfully: ${execution}`);
+    }
+    // StudioNet may omit txExecutionResultName on finalized transactions. Finalization
+    // alone is not treated as success: every caller must verify a contract-state
+    // postcondition before displaying a success message.
+    return { hash: submitted, receipt, executionVerified: execution === 'FINISHED_WITH_RETURN' };
+  } finally {
+    writeInFlight = false;
+  }
 }
 
 export async function readString(address: `0x${string}`, functionName: string, args: unknown[]) {
