@@ -6,7 +6,7 @@
   "contract_source": "contracts/CausalBond.py",
   "contract_sha256": "52522a405a536ff385d888efa29eb6acbda02f5686656275c1565555be83c76e",
   "runtime_case": "97d8b5c551db611fe26559622798849f1394f2019249e01e75dfe3f431b3a04f",
-  "semantic_primitive": "One breached original clause \u00d7 one accepted mandate -> CARRIES or DOES_NOT_CARRY.",
+  "semantic_primitive": "One breached original clause × one accepted mandate -> CARRIES or DOES_NOT_CARRY.",
   "frontend": {
     "identity": "liability command center with horizontal protocol dock, orbital mandate-custody map, telemetry stack, vertical protocol ledger, and responsibility matrix",
     "palette": "deep navy, cyan/cobalt, periwinkle/ice-blue; coral reserved for breach states",
@@ -15,7 +15,8 @@
     "wei_precision": "native values handled as bigint / decimal strings; no JavaScript Number conversion for wei",
     "write_success_rule": "present failure execution enum rejects; absent StudioNet enum requires action-specific finalized-state postcondition",
     "logo_svg": "public/logo.svg (two linked rings; matches application header)",
-    "logo_png": "public/logo.png (512x512; matches application header)"
+    "logo_png": "public/logo.png (512x512; matches application header)",
+    "transaction_submission_lock": "single in-flight mutation; controls lock immediately and remain locked through finalized-state verification; duplicate writes are rejected in the wallet/RPC adapter"
   },
   "local_gates": {
     "python_compile": "PASS",
