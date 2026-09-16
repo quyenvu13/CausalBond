@@ -8,6 +8,7 @@ import {
 } from '@genlayer/transaction-kit-react';
 import { GENLAYER_CHAIN, GENLAYER_CHAIN_NAME } from './network';
 import { connectAccount, getProvider, switchAccount } from './genlayer';
+import { CAUSALBOND_FEE_PROFILE } from './fees';
 
 type Pending = {
   tx: SubmitInput;
@@ -47,7 +48,7 @@ export function useTxGate() {
   const kit: TransactionKit | null = useMemo(() => {
     const provider = getProvider();
     if (!provider || !account) return null;
-    return createTransactionKit({ chain: GENLAYER_CHAIN, provider, account });
+    return createTransactionKit({ chain: GENLAYER_CHAIN, provider, account, suggestions: CAUSALBOND_FEE_PROFILE });
   }, [account]);
 
   const run = useCallback<GateClient['run']>((address, method, args, userValue, onHash) => {
