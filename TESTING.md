@@ -67,30 +67,129 @@ write=12)`.
 CausalBond holds and moves real GEN, so that second gap matters more here than in
 a read-only contract. It has to be closed on Studio Next with transaction hashes.
 
-## On-chain test procedure
+## On-chain test procedure — executed
 
-Four distinct wallets: **principal**, **prime agent**, **child agent**, **receipt
-authority**. All need GEN on Studio Next for fees, and the principal and prime
-also need GEN for the bonds themselves.
+**Five** distinct wallets, not four. The contract forbids any address appearing
+twice in the delegation chain (`CHAIN_AGENT_REUSE_FORBIDDEN`,
+`PRINCIPAL_CANNOT_BE_CHILD`, `RECEIPT_AUTHORITY_CANNOT_BE_CHAIN_AGENT`,
+`CHILD_MUST_DIFFER_FROM_PARENT`), and the scenario needs two delegation layers to
+show liability landing on the second one rather than on the prime.
 
-| Step | Wallet | Action | Expected |
+| # | Wallet | Action | Observed |
 |---|---|---|---|
-| 1 | principal | `create_mandate` with 2–4 clauses | case created, status locked at M0 |
-| 2 | prime | `accept_prime_mandate`, value = `required_bond_wei` | prime bond locked |
-| 3 | prime | `record_handoff` to the child, value = downstream bond | edge recorded, awaiting signature |
-| 4 | child | `accept_handoff` | edge signed |
-| 5 | authority | `submit_receipt` with a structured receipt | breached clause set computed deterministically |
-| 6 | any | `evaluate_edge` per (clause, edge) | `CARRIES` / `DOES_NOT_CARRY` per cell |
-| 7 | any | `finalize_dispute` | liability routed, native transfers emitted |
+| 1 | principal | `create_mandate`, 2 clauses, bond 0.01 GEN/clause | `AWAITING_PRIME_ACCEPTANCE`, `required_bond_wei` = 0.02 GEN |
+| 2 | prime | `accept_prime_mandate`, value = exact required bond | `ACTIVE`, `prime_bond_locked` = 0.02 GEN |
+| 3 | prime | `record_handoff` → agent B, M1 keeps both obligations, value 0 | `HANDOFF_PENDING_ACCEPTANCE`, edge 1 uses the prime bond |
+| 4 | agent B | `accept_handoff(1)` | edge 1 child-signed, executor moves to agent B |
+| 5 | agent B | `record_handoff` → agent C, M2 drops the refund obligation, value 0.02 GEN | `HANDOFF_PENDING_ACCEPTANCE`, edge 2 posts its own bond |
+| 6 | agent C | `accept_handoff(2)` | 2/3 handoffs signed |
+| 7 | receipt authority | `submit_receipt` — refundable false, price 250, cancellation 48h, check-in unix | `EVALUATING_BREACH`, **1 breached clause**, computed with no model call |
+| 8 | any | `evaluate_edge(clause 1, M1)` | `CARRIES` |
+| 9 | any | `evaluate_edge(clause 1, M2)` | `DOES_NOT_CARRY` |
+| 10 | any | `finalize_dispute` | `SETTLED_BREACH`, liability `EDGE_2`, three native transfers |
 
-Capture the transaction hash **and** the contract-state read-back for each step,
-plus the contract balance before and after step 7. Then set
-`VITE_RUNTIME_EVIDENCE` so the Verification page shows that run instead of an
-empty state.
+Price 250 is under the 300 cap, so the price clause is satisfied and the contract
+never asks a validator about it. Exactly two semantic calls are made — one
+breached clause × two signed handoffs.
+
+### Settlement
+
+| | |
+|---|---|
+| status | `SETTLED_BREACH` |
+| liability | `EDGE_2` |
+| carries vector | `[true, false]` |
+| principal compensation | `10000000000000000` wei (0.01 GEN) |
+| prime bond | returned in full — the first layer carried the obligation |
+| edge 2 bond | 0.01 GEN slashed, remainder refunded |
+| contract balance | `0.06 GEN` → `0.02 GEN` — the 0.04 this case locked, released in full |
+
+Case `CB-DEMO-03`, case id `44c2dc32fef71b3bc0e458c76586d442f0c3173ecf4fd884e7be4092d6bc8a40`.
+
+```
+settlement call                                0x8e9a76041f60db4d7efb7a09fd336189a388bd07f1448db1f50369a075719224
+transfer -> principal (compensation 0.01 GEN)  0xec075cb5d0811440e4c73a9bc2a3835f428f4535a97badc8c33a3a82678bba60
+transfer -> prime     (refund 0.02 GEN)        0xaa31fddf69268e6f709b15aeef79e19a07d92993b7d8b4810a2304314f529ddb
+transfer -> edge 2    (refund 0.01 GEN)        0xca7433c6971a5b41c88eda072c5f3b3eb7e2353f9b8ce15afa6411e6bfea42a7
+```
+
+The contract does not end at zero, and that is the correct reading: it holds
+bonds per case, not in one pool. This case locked 0.04 GEN and got all of it
+back out. The residual 0.02 GEN belongs to a separate earlier case that was never
+settled, and no part of this settlement could touch it.
+
+Outgoing transfers execute on **finalization**, not on acceptance: the contract
+balance is unchanged while the settlement transaction sits at `ACCEPTED` and only
+drops to zero once it reaches `FINALIZED`.
+
+### Consensus v0.6 message fees — a real blocker, and how it was closed
+
+The first settlement attempts failed, and the failure is worth recording because
+it is invisible to every offline gate:
+
+```
+fee no_matching_allocation # external
+Mode1MessageFeesRequireGenVMPerEmissionSupport:
+    fee-bearing GenVM messages require a message allocation tree
+```
+
+Under Consensus v0.6 a contract that emits an outgoing message must have that
+message covered by a **message allocation tree** declared by the signer up front.
+A transaction submitted with the default fee distribution declares
+`totalMessageFees: 0`, so the node has nothing to match the transfer against and
+aborts the execution — before any settlement logic runs. The contract was never
+at fault; the declaration was missing on the client side.
+
+The allocations cannot be guessed, because they depend on which messages the call
+actually emits. `src/settle.ts` therefore routes the five money-moving methods
+through `estimateTransactionFeesForWrite`, which simulates the call, observes the
+emitted messages, and returns the allocation tree that `writeContract` then
+signs. If the simulation reports no outgoing messages, the app refuses to sign
+rather than submitting a transaction that would fail at execution.
+
+The five methods on that path: `finalize_dispute`, `settle_no_breach`,
+`force_prime_fallback_after_evaluation_timeout`, `close_after_execution_deadline`,
+`cancel_unaccepted_handoff`.
 
 ### Reading results correctly
 
 A transaction reaching `ACCEPTED` in the consensus history is **not** a success
-signal — a failed transaction walks the same path. The authority is the
-postcondition: re-read `get_case` and compare. The app does this automatically and
-reports nothing as done until the read-back matches.
+signal — a failed transaction walks the same path. This run produced a live
+example of exactly that: a transaction with `CONSENSUS RESULT: Accepted` and
+`GENVM RESULT: ERROR`.
+
+```
+accepted-but-failed transaction   0x910e0d32...b18bf9a1
+```
+
+That transaction is from an earlier run against this same contract, not from the
+run tabulated above — every call in this run succeeded. It is cited because it is
+the clearest available evidence of the distinction, not as part of this run's
+results.
+
+The authority is the postcondition: re-read `get_case` and compare. The app does
+this after every write and reports nothing as done until the read-back matches.
+
+### Source parity
+
+```bash
+npm run verify:deployed
+```
+
+Fetches the deployed code over RPC and compares it against `contracts/CausalBond.py`.
+The expected hash is computed from the repository file at run time, so the check
+cannot drift from the source it claims to verify. The comparison is newline-aware
+(CRLF and a missing trailing newline both still match).
+
+### UI regression gate
+
+```bash
+npm i -D playwright && npx playwright install chromium
+npm run gate:ui
+```
+
+Loads the real `src/styles.css` into a headless browser, rebuilds the DOM nesting
+the app produces, and clicks. It exists because a page-wide pending lock once
+disabled the signing panel's own Approve and Cancel buttons, leaving a reload as
+the only escape. Playwright is deliberately **not** a dependency of this project —
+it would be installed on every deployment build for no runtime benefit.
