@@ -2,6 +2,14 @@
 
 **Bonded delegation accountability for signed AI-agent handoffs on GenLayer.**
 
+## Demo video
+
+**▶ Watch the demo: https://www.youtube.com/watch?v=8S5jAaUOPmg**
+
+What the app does, and the verification flow walked end to end against the
+deployed contract — including the settlement that moves real GEN, with the
+contract balance read before and after.
+
 CausalBond starts from a principal's original machine-checkable obligations (`M0`), requires a prime agent to pre-post a native GEN bond, and supports up to three downstream signed handoffs. Every child must explicitly accept the exact mandate text before becoming the current executor.
 
 The receipt role is intentionally independent. A strict structured outcome receipt determines which original clauses were breached. GenLayer validators then answer only one bounded question for each breached clause × accepted handoff:
@@ -110,15 +118,24 @@ rather than one constant column.
 
 ## Runtime evidence
 
-Not carried over from the previous network. The GenVM v0.2 toolchain the old
-evidence was produced with — `genlayer-test` Direct Mode pinned to v0.2.12, and
-`genvm-linter` 0.11.0 — cannot load a v0.3 contract at all, and the old
-transaction hashes belong to a different deployment.
+Nothing was carried over from the previous network. The old transaction hashes
+belong to a different deployment, and the GenVM v0.2 toolchain that produced them
+— `genlayer-test` Direct Mode pinned to v0.2.12, `genvm-linter` 0.11.0 — cannot
+load a v0.3 contract at all.
 
-Native transfers are the part no offline gate can cover: Direct Mode's message
-mock does not capture `emit_transfer`. Bond locking, bond release and liability
-settlement have to be proven on Studio Next with real transactions. Until that
-run exists, the app's Verification page says so rather than showing figures from
-somewhere else; set `VITE_RUNTIME_EVIDENCE` once it does.
+Native transfers are the one thing no offline gate can cover: Direct Mode's
+message mock does not capture `emit_transfer`, and neither does the in-memory
+v0.3 gate. Bond locking, bond release and liability settlement are unproven
+offline **by construction**, so they were executed on Studio Next instead.
+
+A full delegation chain has now been run end to end on this deployment: five
+distinct wallets, two signed handoffs, a structured receipt, two bounded semantic
+calls, and a settlement that moved GEN out of the contract. Liability routed to
+the second handoff — the one whose mandate dropped the refund obligation — and
+the contract balance went from `0.04 GEN` to `0`.
+
+Transaction hashes for that run are in `TESTING.md`, and the app's Verification
+page reads them from `VITE_RUNTIME_EVIDENCE`. With that variable unset the page
+shows an empty state rather than figures from somewhere else.
 
 See `TESTING.md`, `SECURITY_ASSURANCE.md`, `SECURITY_DECISIONS.md`, and `LOCKED_SPEC.md`.

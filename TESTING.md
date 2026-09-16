@@ -69,6 +69,8 @@ a read-only contract. It has to be closed on Studio Next with transaction hashes
 
 ## On-chain test procedure — executed
 
+The same run, recorded end to end: https://www.youtube.com/watch?v=8S5jAaUOPmg
+
 **Five** distinct wallets, not four. The contract forbids any address appearing
 twice in the delegation chain (`CHAIN_AGENT_REUSE_FORBIDDEN`,
 `PRINCIPAL_CANNOT_BE_CHILD`, `RECEIPT_AUTHORITY_CANNOT_BE_CHAIN_AGENT`,
