@@ -9,6 +9,7 @@ import {
 import { GENLAYER_CHAIN, GENLAYER_CHAIN_NAME } from './network';
 import { connectAccount, getProvider, switchAccount } from './genlayer';
 import { CAUSALBOND_FEE_PROFILE } from './fees';
+import { MESSAGE_BEARING_METHODS, writeWithMessageAllocations } from './settle';
 
 type Pending = {
   tx: SubmitInput;
@@ -52,6 +53,13 @@ export function useTxGate() {
   }, [account]);
 
   const run = useCallback<GateClient['run']>((address, method, args, userValue, onHash) => {
+    // Money-moving methods need a simulated message-allocation tree, which the
+    // kit's panel cannot produce. They take the settle path instead; every other
+    // write still gets the fee panel.
+    if (MESSAGE_BEARING_METHODS.has(method)) {
+      if (!account) return Promise.reject(new Error('Connect a wallet before submitting a transaction.'));
+      return writeWithMessageAllocations(account, address, method, args, onHash);
+    }
     return new Promise<TrackedStatus>((resolve, reject) => {
       setPending({
         tx: { kind: 'write', address, method, args },
@@ -62,7 +70,7 @@ export function useTxGate() {
         reject,
       });
     });
-  }, []);
+  }, [account]);
 
   const client = useMemo<GateClient>(() => ({ run }), [run]);
 
