@@ -43,14 +43,25 @@ export async function writeWithMessageAllocations(
   if (!provider) throw new Error('No EIP-1193 wallet detected.');
 
   /**
-   * genlayer-js resolves the sender as `account?.address ?? client.account?.address`,
-   * so a bare hex string yields `undefined` and viem then rejects it with
-   * `Address "undefined" is invalid`. A wallet-backed sender must be passed as a
-   * json-rpc account object — the address alone is not enough.
+   * The two account forms are NOT interchangeable, and each call site wants a
+   * different one. genlayer-js decides where to send wallet methods with:
+   *
+   *     const isAddress = typeof config.account !== "object";
+   *     if (PROVIDER_METHODS.has(method) && isAddress) -> provider.request(...)
+   *
+   * so `createClient` must get the bare ADDRESS STRING; hand it an object and
+   * `eth_sendTransaction` is posted to the GenLayer RPC, which does not
+   * implement it ("Method not found: eth_sendTransaction").
+   *
+   * The per-call sender is resolved as `account?.address ?? ...`, so those want
+   * an OBJECT; hand them a string and viem rejects `Address "undefined"`.
+   *
+   * Both failures were observed in that order. Address to the client, object to
+   * the calls.
    */
   const sender = { address: account, type: 'json-rpc' as const };
 
-  const client = createClient({ chain: GENLAYER_CHAIN, account: sender as never, provider: provider as never });
+  const client = createClient({ chain: GENLAYER_CHAIN, account, provider: provider as never });
 
   const estimate = await client.estimateTransactionFeesForWrite({
     account: sender as never,
