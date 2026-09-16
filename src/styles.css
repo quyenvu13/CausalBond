@@ -89,6 +89,10 @@ main{grid-column:2;min-width:0}.topbar{height:72px;position:sticky;top:0;z-index
    mutation controls are visibly locked. The synchronous JS guard in App.tsx is
    the actual re-entrancy protection; this state prevents accidental repeat input. */
 .app-shell.is-pending button{pointer-events:none;cursor:wait!important}
+/* CB-UI-1: the pending lock must never reach the signing gate — the gate IS how a
+   pending transaction gets approved or cancelled. Without this, opening the fee panel
+   killed its own Approve and Cancel buttons and only a reload escaped. */
+.app-shell.is-pending .txgate-backdrop button{pointer-events:auto;cursor:pointer!important}
 .app-shell.is-pending main button,.app-shell.is-pending .sidebar nav button{opacity:.5;filter:saturate(.7)}
 .pending-notice{border-color:rgba(53,198,255,.42);background:linear-gradient(90deg,rgba(20,74,112,.34),rgba(10,28,49,.96));color:#ccecff}
 .pending-notice span{animation:cb-pulse 1.1s ease-in-out infinite}

@@ -14,7 +14,8 @@
     "check:mutations": "python3 scripts/mutation_matrix.py",
     "gate:contract": "python3 scripts/gate_v03_runtime.py contracts/CausalBond.py",
     "gate:schema": "python3 scripts/probe_v03_schema.py contracts/CausalBond.py",
-    "check": "npm run check:ast && npm run check:logic && npm run check:adversarial && npm run check:fence && npm run check:mutations && npm run build"
+    "check": "npm run check:ast && npm run check:logic && npm run check:adversarial && npm run check:fence && npm run check:mutations && npm run build",
+    "gate:ui": "node scripts/gate_pending_lock.mjs"
   },
   "dependencies": {
     "@genlayer/transaction-kit": "0.1.0-rc.2",
@@ -28,6 +29,7 @@
     "@types/react-dom": "18.3.0",
     "@vitejs/plugin-react": "4.3.1",
     "typescript": "5.5.4",
-    "vite": "5.4.2"
+    "vite": "5.4.2",
+    "playwright": "^1.48.0"
   }
 }
