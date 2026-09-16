@@ -14,7 +14,15 @@
  *
  * Run: node scripts/gate_pending_lock.mjs
  */
-import { chromium } from 'playwright';
+let chromium;
+try {
+  ({ chromium } = await import('playwright'));
+} catch {
+  console.error('This gate needs Playwright, which is deliberately NOT a dependency of this');
+  console.error('project — it would be installed on every Vercel build for no runtime benefit.');
+  console.error('Install it once, locally:  npm i -D playwright && npx playwright install chromium');
+  process.exit(1);
+}
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
