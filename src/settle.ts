@@ -42,10 +42,18 @@ export async function writeWithMessageAllocations(
   const provider = getProvider();
   if (!provider) throw new Error('No EIP-1193 wallet detected.');
 
-  const client = createClient({ chain: GENLAYER_CHAIN, account, provider: provider as never });
+  /**
+   * genlayer-js resolves the sender as `account?.address ?? client.account?.address`,
+   * so a bare hex string yields `undefined` and viem then rejects it with
+   * `Address "undefined" is invalid`. A wallet-backed sender must be passed as a
+   * json-rpc account object — the address alone is not enough.
+   */
+  const sender = { address: account, type: 'json-rpc' as const };
+
+  const client = createClient({ chain: GENLAYER_CHAIN, account: sender as never, provider: provider as never });
 
   const estimate = await client.estimateTransactionFeesForWrite({
-    account: account as never,
+    account: sender as never,
     address,
     functionName,
     args: args as never[],
@@ -59,7 +67,7 @@ export async function writeWithMessageAllocations(
   }
 
   const hash = (await client.writeContract({
-    account: account as never,
+    account: sender as never,
     address,
     functionName,
     args: args as never[],
