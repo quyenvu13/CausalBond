@@ -124,3 +124,5 @@ main{grid-column:2;min-width:0}.topbar{height:72px;position:sticky;top:0;z-index
 }
 .txgate-close:hover{color:#fff; border-color:#8794b3aa}
 .txgate-note{margin:0; font-size:12px; line-height:1.55; color:#8794b3}
+
+/* --- demo video link in the top bar --------------------------------------- */
