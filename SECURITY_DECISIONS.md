@@ -50,7 +50,7 @@ Deadline state is derived only from `gl.message_raw["datetime"]` with pure integ
 
 ## 13. Finalized-state browser postconditions
 
-The UI never treats StudioNet finalization alone as proof that a write succeeded. A present failure enum aborts immediately; otherwise each action verifies the expected finalized contract-state transition before reporting success.
+The UI never treats a decided transaction alone as proof that a write succeeded. A present failure enum aborts immediately; otherwise each action verifies the expected finalized contract-state transition before reporting success.
 
 ## 14. Honest provenance claim
 

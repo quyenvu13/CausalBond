@@ -59,13 +59,13 @@ All liability routing is derived from stored receipt breaches and stored `CARRIE
 
 ## Frontend transaction assurance
 
-On StudioNet, finalized transaction objects may omit `txExecutionResultName`. The browser therefore uses two layers:
+On Studio chains, decoded transaction objects may omit `txExecutionResultName`. The browser therefore uses two layers:
 
 1. a present execution enum that is not `FINISHED_WITH_RETURN` is treated as failure;
 2. when the enum is absent, every action reloads finalized contract state and checks a method-specific postcondition before showing success.
 
-This avoids both false-positive success from finalization alone and false-negative failure on successful StudioNet writes that omit the enum. The browser exposes all 12 contract write paths, including cancellation, handoff timeout, evaluation-timeout fallback, and no-receipt close, so funds do not require an out-of-app recovery path.
+This avoids both false-positive success from a decided transaction alone and false-negative failure on successful Studio writes that omit the enum. The browser exposes all 12 contract write paths, including cancellation, handoff timeout, evaluation-timeout fallback, and no-receipt close, so funds do not require an out-of-app recovery path.
 
 ## Residual trust and scope
 
-The receipt authority is an authenticated source, not an oracle of external truth. Identity separation reduces obvious self-certification but does not prove that independently addressed parties are non-colluding. If both the prime and the independent receipt authority remain silent, no receipt-confirmed breach exists and the protocol returns bonds rather than inventing liability; the principal's protection is therefore only as strong as the off-chain reliability of the chosen receipt authority. The signed mandate chain proves what text was recorded and accepted on-chain, not what an external agent actually executed. The primary StudioNet settlement path has runtime evidence for consensus decisions and all three native GEN transfers. Timeout/liveness branches remain covered by exact-source local and Direct Mode regressions unless separately listed as live runtime evidence.
+The receipt authority is an authenticated source, not an oracle of external truth. Identity separation reduces obvious self-certification but does not prove that independently addressed parties are non-colluding. If both the prime and the independent receipt authority remain silent, no receipt-confirmed breach exists and the protocol returns bonds rather than inventing liability; the principal's protection is therefore only as strong as the off-chain reliability of the chosen receipt authority. The signed mandate chain proves what text was recorded and accepted on-chain, not what an external agent actually executed. Runtime evidence for the settlement path has NOT been re-established on the Studio Next deployment: consensus decisions and native GEN transfers are unproven there until that run exists. Every other claim in this document rests on exact-source offline gates, which do not observe `emit_transfer`.

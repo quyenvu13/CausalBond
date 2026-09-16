@@ -1,22 +1,25 @@
 {
   "name": "causalbond",
-  "version": "1.0.0",
+  "version": "2.0.0-studionext",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "check:contract": "python scripts/check_contract_ast.py",
-    "test:logic": "python scripts/test_contract_logic.py",
-    "test:adversarial": "python scripts/test_contract_logic.py --suite adversarial",
-    "test:fence": "python scripts/fence_probe.py",
-    "test:mutations": "python scripts/mutation_matrix.py",
-    "test:direct": "pytest tests/direct -v",
-    "lint:genvm": "genvm-lint check contracts/CausalBond.py && genvm-lint schema contracts/CausalBond.py && genvm-lint typecheck contracts/CausalBond.py",
-    "check": "npm run check:contract && npm run test:logic && npm run test:adversarial && npm run test:fence && npm run test:mutations && npm run build"
+    "preview": "vite preview",
+    "check:ast": "python3 scripts/check_contract_ast.py",
+    "check:logic": "python3 scripts/test_contract_logic.py",
+    "check:adversarial": "python3 scripts/test_contract_logic.py --suite adversarial",
+    "check:fence": "python3 scripts/fence_probe.py contracts/CausalBond.py",
+    "check:mutations": "python3 scripts/mutation_matrix.py",
+    "gate:contract": "python3 scripts/gate_v03_runtime.py contracts/CausalBond.py",
+    "gate:schema": "python3 scripts/probe_v03_schema.py contracts/CausalBond.py",
+    "check": "npm run check:ast && npm run check:logic && npm run check:adversarial && npm run check:fence && npm run check:mutations && npm run build"
   },
   "dependencies": {
-    "genlayer-js": "1.1.8",
+    "@genlayer/transaction-kit": "0.1.0-rc.2",
+    "@genlayer/transaction-kit-react": "0.1.0-rc.2",
+    "genlayer-js": "2.0.0-rc.1",
     "react": "18.3.1",
     "react-dom": "18.3.1"
   },

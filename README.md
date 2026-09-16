@@ -10,13 +10,15 @@ The receipt role is intentionally independent. A strict structured outcome recei
 
 The wire result is only `CARRIES` or `DOES_NOT_CARRY`. The contract performs responsibility localization, restoration handling, slashing arithmetic, refunds, and prime-liable fallback deterministically.
 
-## StudioNet deployment
+## Deployment
 
-- Network: GenLayer StudioNet
-- Contract: `0x01a6BEab9324ACFADa32Af8cc1070049E0e97Da3`
+- Network: **GenLayer Studio Next** (Consensus v0.6)
+- RPC: `https://studio-next.genlayer.com/api`
+- Chain ID: `61997`
+- Contract: `0x12d17759F94d59E662126c683D67de56Ec4F903D`
 - Contract source: `contracts/CausalBond.py`
-- Contract SHA-256: `52522a405a536ff385d888efa29eb6acbda02f5686656275c1565555be83c76e`
-- Primary runtime case: `97d8b5c551db611fe26559622798849f1394f2019249e01e75dfe3f431b3a04f`
+- Contract SHA-256: `d8fa13373036e87250bdd51099c8f26c935a4fc02c3d4369087d953dd3fcf83a`
+- GenVM: `v0.3.0-rc7`, runner `py-genlayer:5jycge4q8k23462jtb0b9fyey1s9qz928sz2nbrd9mg4sxqg2qng`
 
 ## Why the design is narrow
 
@@ -46,9 +48,11 @@ CausalBond authenticates which wallet submitted the structured receipt; it does 
 7. `finalize_dispute(...)` — deterministic scan selects liability, compensates the principal, and refunds unused bond value.
 8. Recovery/timeout methods prevent funds from depending on a single actor forever.
 
-## Executed StudioNet proof
+## The primary runtime path
 
-The primary runtime path was executed against the deployed contract:
+This is the sequence the contract is built to enforce, and the one to execute
+against the deployment above. Runtime evidence for **this** deployment has not
+been re-established yet — see "Runtime evidence" below.
 
 - M0: refundable booking and total price ≤ 300 USD.
 - M1 preserved both obligations → `CARRIES` for refundable.
@@ -70,7 +74,7 @@ The interface uses a liability command-center visual system: a horizontal protoc
 
 Action forms are empty by default. Completed writes disappear from active action surfaces and are replaced by read-only finalized-state indicators, reducing replay and double-click ambiguity.
 
-The browser does not treat transaction finalization alone as execution success when StudioNet omits `txExecutionResultName`; each write reloads finalized contract state and verifies an action-specific postcondition.
+The browser never treats a decided transaction as execution success — a failed transaction reaches `ACCEPTED` too. Each write reloads contract state and verifies an action-specific postcondition before reporting anything.
 
 Run locally:
 
@@ -80,7 +84,7 @@ npm run build
 npm run dev
 ```
 
-`VITE_CONTRACT_ADDRESS` defaults to the deployed StudioNet contract and can be overridden through environment configuration.
+`VITE_CONTRACT_ADDRESS` defaults to the deployed Studio Next contract and can be overridden through environment configuration. Every network value lives in `src/network.ts` and is shared by reads, MetaMask and Transaction Kit, so an RPC override can never sign for a chain other than the one being read.
 
 ## Executed repository gates
 
@@ -92,15 +96,29 @@ Adversarial logic               18/18 PASS
 Prompt fence                    0/12 bypasses
 Mutation matrix                 23/23 caught
 GenVM lint/schema/typecheck     PASS on exact contract SHA
-Direct Mode regressions         8/8 PASS on real GenVM (pinned v0.2.12)
+v0.3 runtime gate               27 checks PASS on py-genlayer v0.3.0-rc7
 ```
 
-Two of those eight rebuild the executed StudioNet settlement on GenVM — the
-deterministic breach predicate, the per-edge carries vector, the responsibility
-routing that produced `EDGE_2` liability, the slash total, and every bond
-released to zero — plus the prime-fallback case where a genuine breach occurs and
-no delegation edge dropped the obligation. The native transfers themselves are
-proven on StudioNet with transaction hashes, because Direct Mode's message mock
-does not capture `emit_transfer`.
+```bash
+npm run check          # ast -> logic -> adversarial -> fence -> mutations -> build
+npm run gate:contract  # the v0.3 SDK gate (see scripts/setup_v03_sdk.sh)
+```
 
-See `TESTING.md`, `RUNTIME_VERIFICATION.md`, `SECURITY_ASSURANCE.md`, `SECURITY_DECISIONS.md`, and `LOCKED_SPEC.md`.
+The mutation matrix is scored on three independent gates and its unmutated
+baseline is green on all three, so `23/23` reflects three different detectors
+rather than one constant column.
+
+## Runtime evidence
+
+Not carried over from the previous network. The GenVM v0.2 toolchain the old
+evidence was produced with — `genlayer-test` Direct Mode pinned to v0.2.12, and
+`genvm-linter` 0.11.0 — cannot load a v0.3 contract at all, and the old
+transaction hashes belong to a different deployment.
+
+Native transfers are the part no offline gate can cover: Direct Mode's message
+mock does not capture `emit_transfer`. Bond locking, bond release and liability
+settlement have to be proven on Studio Next with real transactions. Until that
+run exists, the app's Verification page says so rather than showing figures from
+somewhere else; set `VITE_RUNTIME_EVIDENCE` once it does.
+
+See `TESTING.md`, `SECURITY_ASSURANCE.md`, `SECURITY_DECISIONS.md`, and `LOCKED_SPEC.md`.

@@ -59,7 +59,24 @@ class Return:
 
 
 class Contract:
-    pass
+    """v0.3 storage semantics: declared storage fields are allocated by the
+    storage layout before `__init__` runs, so a contract must NOT (and now
+    cannot) construct them itself. Mirror that here, otherwise the stub would
+    only work with the v0.2 `self.x = TreeMap()` style the contract dropped."""
+
+    def __new__(cls, *args, **kwargs):
+        instance = super().__new__(cls)
+        for klass in reversed(cls.__mro__):
+            for name, annotation in getattr(klass, "__annotations__", {}).items():
+                if annotation is TreeMap or getattr(annotation, "__origin__", None) is TreeMap:
+                    setattr(instance, name, TreeMap())
+                elif annotation is int:
+                    setattr(instance, name, 0)
+                elif annotation is str:
+                    setattr(instance, name, "")
+                elif annotation is bool:
+                    setattr(instance, name, False)
+        return instance
 
 
 class _Decorator:
@@ -79,6 +96,7 @@ class _Public:
 class _Message:
     sender_address = Address("0x" + "11" * 20)
     value = 0
+    # `raw` is attached below, once _ChainClock exists (v0.3: gl.message.raw).
 
 
 class _State:
@@ -102,7 +120,7 @@ def _exec_prompt(prompt, response_format=None):
     return STATE.llm_result
 
 
-def _run_nondet_unsafe(leader_fn, validator_fn):
+def _run_nondet(leader_fn, validator_fn):
     STATE.consensus_calls += 1
     leader = leader_fn()
     if not validator_fn(Return(leader)):
@@ -157,33 +175,63 @@ class _ChainClock:
             return default
 
 
-gl = types.SimpleNamespace(
-    Contract=Contract,
-    public=_Public(),
-    message=_Message(),
-    message_raw=_ChainClock(),
-    nondet=types.SimpleNamespace(exec_prompt=_exec_prompt),
-    vm=types.SimpleNamespace(
-        UserError=UserError,
-        Return=Return,
-        run_nondet_unsafe=_run_nondet_unsafe,
-    ),
-    evm=types.SimpleNamespace(contract_interface=_contract_interface),
-)
+# py-genlayer v0.3 shape: the contract does `import genlayer as gl`, so the stub
+# module IS `gl`, with `genlayer.types` and `genlayer.storage` registered as real
+# submodules. `gl.Contract`, `gl.message_raw` and `run_nondet_unsafe` no longer
+# exist in v0.3 and are deliberately absent here too.
+_MESSAGE = _Message()
+_MESSAGE.raw = _ChainClock()
 
-fake = types.ModuleType("genlayer")
-fake.Address = Address
-fake.TreeMap = TreeMap
-fake.u64 = int
-fake.u256 = int
-fake.gl = gl
-fake.__all__ = ["Address", "TreeMap", "u64", "u256", "gl"]
-sys.modules["genlayer"] = fake
+gl = types.ModuleType("genlayer")
+gl.contract = types.SimpleNamespace(Contract=Contract)
+gl.public = _Public()
+gl.message = _MESSAGE
+gl.nondet = types.SimpleNamespace(exec_prompt=_exec_prompt)
+gl.vm = types.SimpleNamespace(
+    UserError=UserError,
+    Return=Return,
+    run_nondet=_run_nondet,
+)
+gl.evm = types.SimpleNamespace(contract_interface=_contract_interface)
+gl.Address = Address
+gl.TreeMap = TreeMap
+gl.u64 = int
+gl.u256 = int
+gl.__all__ = ["contract", "public", "message", "nondet", "vm", "evm",
+              "Address", "TreeMap", "u64", "u256"]
+
+_types_mod = types.ModuleType("genlayer.types")
+_types_mod.Address = Address
+_types_mod.u8 = _types_mod.u16 = _types_mod.u32 = _types_mod.u64 = _types_mod.u256 = int
+_types_mod.__all__ = ["Address", "u8", "u16", "u32", "u64", "u256"]
+
+_storage_mod = types.ModuleType("genlayer.storage")
+_storage_mod.TreeMap = TreeMap
+_storage_mod.__all__ = ["TreeMap"]
+
+gl.types = _types_mod
+gl.storage = _storage_mod
+
+sys.modules["genlayer"] = gl
+sys.modules["genlayer.types"] = _types_mod
+sys.modules["genlayer.storage"] = _storage_mod
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = Path(os.environ.get("CAUSALBOND_CONTRACT_PATH", ROOT / "contracts" / "CausalBond.py"))
 namespace = {"__name__": "causalbond_contract_under_test"}
-exec(compile(CONTRACT_PATH.read_text(encoding="utf-8"), str(CONTRACT_PATH), "exec"), namespace)
+# dont_inherit: this script uses `from __future__ import annotations`, and
+# compile() would otherwise pass that flag into the contract, turning its
+# storage annotations into strings and defeating the v0.3 auto-allocation.
+exec(
+    compile(
+        CONTRACT_PATH.read_text(encoding="utf-8"),
+        str(CONTRACT_PATH),
+        "exec",
+        flags=0,
+        dont_inherit=True,
+    ),
+    namespace,
+)
 CausalBond = namespace["CausalBond"]
 
 PRINCIPAL = Address("0x" + "aa" * 20)

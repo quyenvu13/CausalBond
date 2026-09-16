@@ -1,6 +1,9 @@
-# { "Depends": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6" }
+# v0.3.0
+# { "Depends": "py-genlayer:5jycge4q8k23462jtb0b9fyey1s9qz928sz2nbrd9mg4sxqg2qng" }
 
-from genlayer import *
+import genlayer as gl
+from genlayer.types import *
+from genlayer.storage import TreeMap
 import hashlib
 import json
 import re
@@ -15,7 +18,7 @@ class _Recipient:
         pass
 
 
-class CausalBond(gl.Contract):
+class CausalBond(gl.contract.Contract):
     """
     Bonded delegation accountability for recorded AI-agent handoffs.
 
@@ -75,7 +78,9 @@ class CausalBond(gl.Contract):
     )
 
     def __init__(self) -> None:
-        self.cases = TreeMap()
+        # v0.3: storage fields (TreeMap / DynArray) are allocated by the storage
+        # layout itself. Calling TreeMap() here raises
+        # GenerationError: generic storage classes can not be instantiated.
         self.case_count = u64(0)
 
     # ------------------------------------------------------------------
@@ -83,10 +88,10 @@ class CausalBond(gl.Contract):
     # ------------------------------------------------------------------
 
     def _now_unix(self) -> int:
-        # Deterministic on-chain clock. gl.message_raw["datetime"] is part of the
+        # Deterministic on-chain clock. gl.message.raw["datetime"] is part of the
         # transaction every validator replays, so every validator computes the
         # same integer. the wall-clock builtin is each validator's own clock.
-        raw = gl.message_raw["datetime"]
+        raw = gl.message.raw["datetime"]
         text = str(raw).strip()
         if text.endswith("Z"):
             text = text[:-1]
@@ -339,7 +344,7 @@ or
                 return False
             return validator_decision == leader_decision
 
-        return gl.vm.run_nondet_unsafe(leader_fn, validator_fn)
+        return gl.vm.run_nondet(leader_fn, validator_fn)
 
     def _emit(self, recipient_hex: str, amount: int) -> None:
         if amount <= 0:

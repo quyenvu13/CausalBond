@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { DEFAULT_CONTRACT_ADDRESS, IS_DEPLOYED, STUDIONET_EXPLORER_URL } from './config';
-import { connectWallet, readJson, readString, writeAndFinalize } from './genlayer';
+import { DEFAULT_CONTRACT_ADDRESS, IS_DEPLOYED } from './config';
+import { describeChainError, readJson, readString, writeAndFinalize } from './genlayer';
+import { GENLAYER_CHAIN_ID, GENLAYER_CHAIN_NAME, explorerAddressUrl } from './network';
+import { useTxGate } from './txgate';
+import { RUNTIME_EVIDENCE } from './evidence';
 import type { CaseState, Clause, ClauseKind, Edge } from './types';
 
 type Route = 'overview' | 'create' | 'prime' | 'handoff' | 'receipt' | 'evaluate' | 'recovery' | 'inspect' | 'verification';
@@ -98,6 +101,7 @@ function App() {
   const [txHash, setTxHash] = useState('');
   const [caseId, setCaseId] = useState('');
   const [caseState, setCaseState] = useState<CaseState | null>(null);
+  const gate = useTxGate();
 
   useEffect(() => {
     const onHash = () => {
@@ -117,9 +121,13 @@ function App() {
   const connect = async () => {
     try {
       setPending(true); setNotice('');
-      const w = await connectWallet();
-      setWallet(w); setNotice('Wallet connected to StudioNet.');
-    } catch (e: any) { setNotice(e?.message ?? String(e)); }
+      // Already connected -> the button becomes an account switcher. CausalBond
+      // needs several distinct roles (principal, prime, child, authority), so
+      // switching wallets is part of the normal flow, not an edge case.
+      const w = wallet ? await gate.switchAccount() : await gate.connect();
+      setWallet(w);
+      setNotice(`Wallet ${short(w.account, 7)} connected to ${GENLAYER_CHAIN_NAME} (chain id ${GENLAYER_CHAIN_ID}).`);
+    } catch (e: any) { setNotice(describeChainError(e)); }
     finally { setPending(false); }
   };
 
@@ -163,13 +171,14 @@ function App() {
       </aside>
 
       <main>
+        {gate.modal}
         <header className="topbar">
           <div className="topbar-left">
-            <span className="chain-chip">GENLAYER · STUDIO</span>
+            <span className="chain-chip">GENLAYER · STUDIO NEXT · {GENLAYER_CHAIN_ID}</span>
             <span className="contract-chip">Contract {IS_DEPLOYED ? short(DEFAULT_CONTRACT_ADDRESS, 8) : 'not deployed'}</span>
           </div>
           <div className="topbar-actions">
-            {IS_DEPLOYED && <a href={STUDIONET_EXPLORER_URL} target="_blank" rel="noreferrer">Explorer ↗</a>}
+            {IS_DEPLOYED && <a href={explorerAddressUrl(DEFAULT_CONTRACT_ADDRESS)} target="_blank" rel="noreferrer">Explorer ↗</a>}
             <button className="wallet-button" onClick={connect} disabled={pending}>{wallet ? short(wallet.account, 7) : 'Connect wallet'}</button>
           </div>
         </header>
@@ -498,28 +507,47 @@ function Inspect({ caseId, setCaseId, caseState, loadCase }: any) {
 }
 
 function Verification() {
-  const runtimeCase = '97d8b5c551db611fe26559622798849f1394f2019249e01e75dfe3f431b3a04f';
-  const transfers = [
-    ['PRINCIPAL SLASH', '0.01 GEN', '0x36f7ce0e91c0adc717e1cf21632941b34a3b087f164d68aaf5d34682ac2b54e9'],
-    ['PRIME REFUND', '0.02 GEN', '0xcf4c01a145b45c6ac2afe040d9814dc3412240d84de565fe9e7b7b6d981e7277'],
-    ['EDGE-2 REFUND', '0.01 GEN', '0xebc5c4e34c86f8f9974a0360fdc6fdbd049645f5544154a47f5e658c5fd8aa3c'],
-  ];
+  const evidence = RUNTIME_EVIDENCE;
+
+  if (!evidence) {
+    return <div className="page">
+      <PageHead eyebrow="08 · EXECUTED EVIDENCE" title="Runtime verification">
+        Nothing is asserted here that has not been executed against the contract this app is pointed at.
+      </PageHead>
+      <section className="verification-empty">
+        <div className="verify-icon">◇</div>
+        <h2>Not yet re-established on this deployment</h2>
+        <p>
+          The settlement path has to be executed against <code>{short(DEFAULT_CONTRACT_ADDRESS, 12)}</code> before
+          any case id or transfer hash can be shown. Evidence from the previous network is deliberately not
+          carried over — it would point at records that do not exist here.
+        </p>
+        <p>
+          Run it yourself: create a mandate, bond the prime agent, record and sign a handoff, submit a receipt,
+          evaluate the edges, then finalize. Every step is a real transaction and the app re-reads contract state
+          before reporting any of them as done.
+        </p>
+        <a className="proof-link" href={explorerAddressUrl(DEFAULT_CONTRACT_ADDRESS)} target="_blank" rel="noreferrer">Open deployed contract on Explorer ↗</a>
+      </section>
+    </div>;
+  }
+
   return <div className="page">
-    <PageHead eyebrow="08 · EXECUTED EVIDENCE" title="StudioNet verification">The primary bonded-delegation path was executed against the deployed contract. Runtime references live here, never inside transaction forms.</PageHead>
+    <PageHead eyebrow="08 · EXECUTED EVIDENCE" title="Runtime verification">The primary bonded-delegation path was executed against the deployed contract. Runtime references live here, never inside transaction forms.</PageHead>
     <section className="verification-empty">
       <div className="verify-icon">✓</div>
       <h2>Targeted native settlement verified</h2>
-      <p>Runtime case <code>{short(runtimeCase, 12)}</code> produced M1 = CARRIES, M2 = DOES_NOT_CARRY, deterministic EDGE_2 liability, and three finalized native GEN transfers. The contract balance returned to 0 GEN.</p>
+      <p>Runtime case <code>{short(evidence.caseId, 12)}</code> produced the recorded semantic decisions, deterministic liability routing, and finalized native GEN transfers.</p>
       <div className="verify-grid">
-        <div><span>LIABILITY</span><strong>EDGE_2</strong></div>
-        <div><span>SEMANTIC CELLS</span><strong>2 / 2</strong></div>
-        <div><span>PRINCIPAL</span><strong>+0.01 GEN</strong></div>
-        <div><span>CONTRACT BALANCE</span><strong>0 GEN</strong></div>
+        <div><span>LIABILITY</span><strong>{evidence.liability}</strong></div>
+        <div><span>SEMANTIC CELLS</span><strong>{evidence.semanticCells}</strong></div>
+        <div><span>PRINCIPAL</span><strong>{evidence.principalDelta}</strong></div>
+        <div><span>CONTRACT BALANCE</span><strong>{evidence.contractBalance}</strong></div>
       </div>
       <div className="runtime-proof-list">
-        {transfers.map(([label, value, hash]) => <div key={hash}><span>{label}</span><strong>{value}</strong><code>{short(hash, 12)}</code></div>)}
+        {evidence.transfers.map(([label, value, hash]) => <div key={hash}><span>{label}</span><strong>{value}</strong><code>{short(hash, 12)}</code></div>)}
       </div>
-      <a className="proof-link" href={STUDIONET_EXPLORER_URL} target="_blank" rel="noreferrer">Open deployed contract on Explorer ↗</a>
+      <a className="proof-link" href={explorerAddressUrl(DEFAULT_CONTRACT_ADDRESS)} target="_blank" rel="noreferrer">Open deployed contract on Explorer ↗</a>
     </section>
   </div>;
 }
